@@ -1,5 +1,11 @@
 import { ReconstructionProvider } from './ReconstructionProvider.js';
 
+const SVG_THUMBNAILS = {
+  academic: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="150" y="120" width="300" height="180" rx="6" fill="%231e293b" stroke="%2338bdf8" stroke-width="2"/><rect x="180" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="240" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="300" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="360" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><polygon points="250,120 300,70 350,120" fill="%230284c7"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">KIET CAMPUS DIGITAL TWIN</text></svg>`,
+  logistics: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="80" y="160" width="440" height="140" rx="6" fill="%230f172a" stroke="%2334d399" stroke-width="2"/><rect x="110" y="180" width="60" height="120" fill="%231e293b" stroke="%2334d399" stroke-width="1"/><rect x="190" y="180" width="60" height="120" fill="%231e293b" stroke="%2334d399" stroke-width="1"/><rect x="270" y="180" width="60" height="120" fill="%231e293b" stroke="%2334d399" stroke-width="1"/><rect x="350" y="180" width="60" height="120" fill="%231e293b" stroke="%2334d399" stroke-width="1"/><text x="300" y="340" text-anchor="middle" fill="%2334d399" font-family="monospace" font-size="16" font-weight="bold">LOGISTICS COMPLEX TWIN</text></svg>`,
+  tower: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="220" y="80" width="160" height="220" rx="8" fill="%230284c7" opacity="0.3" stroke="%2338bdf8" stroke-width="2"/><rect x="250" y="50" width="100" height="250" rx="4" fill="%2338bdf8" opacity="0.5"/><line x1="300" y1="10" x2="300" y2="50" stroke="%2338bdf8" stroke-width="4"/><text x="300" y="340" text-anchor="middle" fill="%23818cf8" font-family="monospace" font-size="16" font-weight="bold">SMART CITY SKY TOWER</text></svg>`
+};
+
 export class DemoProvider extends ReconstructionProvider {
   constructor() {
     super('Demo/Local');
@@ -10,11 +16,11 @@ export class DemoProvider extends ReconstructionProvider {
         status: 'SUCCEEDED',
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
         model_url: '/demo/build.glb',
-        thumbnail_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?auto=format&fit=crop&w=600&q=80',
+        thumbnail_url: SVG_THUMBNAILS.academic,
         metadata: {
           vertices: 48520,
           faces: 92400,
-          boundingBox: { x: 34.5, y: 18.2, z: 24.8 },
+          boundingBox: { x: 28.0, y: 14.0, z: 18.0 },
           estimatedArea: 855.6,
           estimatedHeight: 18.2,
           locationName: 'Delhi NCR, India',
@@ -34,13 +40,13 @@ export class DemoProvider extends ReconstructionProvider {
         status: 'SUCCEEDED',
         created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
         model_url: '/demo/build.glb',
-        thumbnail_url: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80',
+        thumbnail_url: SVG_THUMBNAILS.logistics,
         metadata: {
           vertices: 64200,
           faces: 118900,
-          boundingBox: { x: 52.0, y: 22.5, z: 38.0 },
+          boundingBox: { x: 44.0, y: 12.0, z: 32.0 },
           estimatedArea: 1976.0,
-          estimatedHeight: 22.5,
+          estimatedHeight: 12.5,
           locationName: 'Noida Tech Sector, India',
           gps: { latitude: 28.5355, longitude: 77.3910 },
           gsd: '0.9 cm/px',
@@ -50,6 +56,30 @@ export class DemoProvider extends ReconstructionProvider {
           flightAltitude: '60 m',
           weather: 'Overcast, 8 km/h Wind',
           operator: 'Senior GIS Surveyor'
+        }
+      },
+      {
+        id: 'demo-proj-003',
+        name: 'Smart City Innovation Sky Tower',
+        status: 'SUCCEEDED',
+        created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
+        model_url: '/demo/build.glb',
+        thumbnail_url: SVG_THUMBNAILS.tower,
+        metadata: {
+          vertices: 89400,
+          faces: 162100,
+          boundingBox: { x: 22.0, y: 28.0, z: 22.0 },
+          estimatedArea: 680.0,
+          estimatedHeight: 28.0,
+          locationName: 'Gurugram Cyber City, India',
+          gps: { latitude: 28.4595, longitude: 77.0266 },
+          gsd: '0.7 cm/px',
+          surveyDate: '2026-08-20',
+          droneModel: 'DJI Inspire 3 RTK',
+          cameraModel: 'Zenmuse X9-8K Air',
+          flightAltitude: '75 m',
+          weather: 'Clear, 15 km/h Wind',
+          operator: 'Chief Aerospace Inspector'
         }
       }
     ];
@@ -71,7 +101,7 @@ export class DemoProvider extends ReconstructionProvider {
   async getArtifacts(id) {
     return [
       { type: 'glb', url: '/demo/build.glb', label: '3D GLB Digital Twin Mesh' },
-      { type: 'orthomosaic', url: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=800&q=80', label: '2D Orthomosaic Map' },
+      { type: 'orthomosaic', url: SVG_THUMBNAILS.academic, label: '2D Orthomosaic Map' },
       { type: 'pointcloud', url: null, label: 'LAS/PLY Point Cloud (On Request)' }
     ];
   }
@@ -94,7 +124,7 @@ export class DemoProvider extends ReconstructionProvider {
       status: 'PROCESSING',
       created_at: new Date().toISOString(),
       model_url: '/demo/build.glb',
-      thumbnail_url: 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=600&q=80',
+      thumbnail_url: SVG_THUMBNAILS.academic,
       metadata: {
         vertices: 48520,
         faces: 92400,
@@ -114,6 +144,15 @@ export class DemoProvider extends ReconstructionProvider {
     };
 
     this.demoCaptures.unshift(newCapture);
+
+    // Auto-transition status from PROCESSING to SUCCEEDED after 4 seconds
+    setTimeout(() => {
+      const cap = this.demoCaptures.find(c => c.id === newId);
+      if (cap) {
+        cap.status = 'SUCCEEDED';
+      }
+    }, 4000);
+
     return newCapture;
   }
 }

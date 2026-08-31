@@ -17,7 +17,10 @@ import { useProjects } from '../store/ProjectContext';
 export const ProcessingPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { providerStatus, projects } = useProjects();
+  const { providerStatus, projects, refreshData, setActiveProject } = useProjects();
+
+  const targetId = projectId || 'demo-proj-001';
+  const currentProject = projects.find(p => p.id === targetId);
 
   const [progress, setProgress] = useState<number>(10);
   const [currentStep, setCurrentStep] = useState<number>(3);
@@ -43,19 +46,27 @@ export const ProcessingPage: React.FC = () => {
       setProgress(prev => {
         if (prev >= 100) {
           clearInterval(progressTimer);
+          refreshData();
           return 100;
         }
-        const next = prev + 15;
+        const next = prev + 25;
         if (next > 30 && next < 50) setCurrentStep(3);
         if (next >= 50 && next < 75) setCurrentStep(4);
         if (next >= 75 && next < 95) setCurrentStep(5);
         if (next >= 95) setCurrentStep(7);
         return next;
       });
-    }, 1200);
+    }, 1000);
 
     return () => clearInterval(progressTimer);
-  }, []);
+  }, [refreshData]);
+
+  const handleLaunchViewer = () => {
+    if (currentProject) {
+      setActiveProject(currentProject);
+    }
+    navigate(`/viewer/${targetId}`);
+  };
 
   return (
     <div className="flex h-screen bg-aerospace-950 text-slate-100 overflow-hidden font-sans">
@@ -73,7 +84,7 @@ export const ProcessingPage: React.FC = () => {
             {/* Header Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-300 font-mono text-xs">
               <Activity className="w-3.5 h-3.5 text-sky-400 animate-spin-slow" />
-              <span>{providerStatus.mode === 'demo' ? 'DEMO RECONSTRUCTION PIPELINE' : 'LIVE POLYCAM RECONSTRUCTION'}</span>
+              <span>{(providerStatus?.mode || 'demo').toUpperCase()} RECONSTRUCTION PIPELINE</span>
             </div>
 
             <h2 className="text-2xl font-extrabold text-slate-100">
@@ -97,7 +108,7 @@ export const ProcessingPage: React.FC = () => {
               </div>
               <div className="flex justify-between text-[10px] font-mono text-slate-500">
                 <span>Elapsed: {elapsed}s</span>
-                <span>Estimated Remaining: {Math.max(0, 12 - Math.floor(elapsed / 2))}s</span>
+                <span>Estimated Remaining: {Math.max(0, 4 - elapsed)}s</span>
               </div>
             </div>
 
@@ -122,7 +133,7 @@ export const ProcessingPage: React.FC = () => {
             {/* Complete Action */}
             {progress >= 100 && (
               <button
-                onClick={() => navigate(`/viewer/${projectId || 'demo-proj-001'}`)}
+                onClick={handleLaunchViewer}
                 className="w-full max-w-md mx-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-aerospace-950 font-bold text-sm shadow-xl transition-all animate-bounce"
               >
                 <Box className="w-4 h-4" />

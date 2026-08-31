@@ -8,7 +8,7 @@ router.post('/polycam', express.raw({ type: 'application/json' }), (req, res) =>
   const webhookSecret = process.env.POLYCAM_WEBHOOK_SECRET;
   const signature = req.headers['x-polycam-signature'] || req.headers['x-signature'];
 
-  // If secret is set, verify signature
+  // If secret is set, verify signature in timing-safe manner
   if (webhookSecret) {
     if (!signature) {
       return res.status(401).json({ error: true, message: 'Missing Webhook Signature header.' });
@@ -17,7 +17,10 @@ router.post('/polycam', express.raw({ type: 'application/json' }), (req, res) =>
     const hmac = crypto.createHmac('sha256', webhookSecret);
     const digest = hmac.update(req.body).digest('hex');
 
-    if (signature !== digest) {
+    const sigBuffer = Buffer.from(String(signature), 'utf8');
+    const digestBuffer = Buffer.from(String(digest), 'utf8');
+
+    if (sigBuffer.length !== digestBuffer.length || !crypto.timingSafeEqual(sigBuffer, digestBuffer)) {
       return res.status(401).json({ error: true, message: 'Invalid Webhook Signature.' });
     }
   }

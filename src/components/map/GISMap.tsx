@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
-import { Layers, MapPin, Compass, Navigation } from 'lucide-react';
+import 'leaflet/dist/leaflet.css';
+import { Layers, MapPin, Compass, Navigation, WifiOff } from 'lucide-react';
 import { GPSCoordinate } from '../../types';
 
 interface GISMapProps {
@@ -13,9 +14,21 @@ export const GISMap: React.FC<GISMapProps> = ({ gps, locationName, projectName }
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [tileLayerType, setTileLayerType] = useState<'dark' | 'satellite' | 'street'>('dark');
+  const [isOffline, setIsOffline] = useState<boolean>(typeof navigator !== 'undefined' ? !navigator.onLine : false);
 
   const defaultLat = gps?.latitude || 28.7523;
   const defaultLng = gps?.longitude || 77.4988;
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -125,6 +138,14 @@ export const GISMap: React.FC<GISMapProps> = ({ gps, locationName, projectName }
           </button>
         </div>
       </div>
+
+      {/* Offline Mode Banner */}
+      {isOffline && (
+        <div className="absolute bottom-4 left-4 z-[1000] flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono backdrop-blur-md">
+          <WifiOff className="w-4 h-4 shrink-0" />
+          <span>OFFLINE GIS TELEMETRY — Displaying Cached Local Boundary & GPS Target</span>
+        </div>
+      )}
 
       {/* Map Container */}
       <div ref={mapContainerRef} className="w-full h-full" />

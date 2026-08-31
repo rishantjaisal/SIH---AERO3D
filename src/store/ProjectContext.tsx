@@ -2,6 +2,12 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Project, InspectionMarker, Measurement3D, SystemHealth } from '../types';
 import { api } from '../services/api';
 
+const SVG_THUMBNAILS = {
+  academic: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="150" y="120" width="300" height="180" rx="6" fill="%231e293b" stroke="%2338bdf8" stroke-width="2"/><rect x="180" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="240" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="300" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="360" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><polygon points="250,120 300,70 350,120" fill="%230284c7"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">KIET CAMPUS DIGITAL TWIN</text></svg>`,
+  logistics: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="80" y="160" width="440" height="140" rx="6" fill="%230f172a" stroke="%2334d399" stroke-width="2"/><rect x="110" y="180" width="60" height="120" fill="%231e293b" stroke="%2334d399" stroke-width="1"/><rect x="190" y="180" width="60" height="120" fill="%231e293b" stroke="%2334d399" stroke-width="1"/><rect x="270" y="180" width="60" height="120" fill="%231e293b" stroke="%2334d399" stroke-width="1"/><rect x="350" y="180" width="60" height="120" fill="%231e293b" stroke="%2334d399" stroke-width="1"/><text x="300" y="340" text-anchor="middle" fill="%2334d399" font-family="monospace" font-size="16" font-weight="bold">LOGISTICS COMPLEX TWIN</text></svg>`,
+  tower: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="220" y="80" width="160" height="220" rx="8" fill="%230284c7" opacity="0.3" stroke="%2338bdf8" stroke-width="2"/><rect x="250" y="50" width="100" height="250" rx="4" fill="%2338bdf8" opacity="0.5"/><line x1="300" y1="10" x2="300" y2="50" stroke="%2338bdf8" stroke-width="4"/><text x="300" y="340" text-anchor="middle" fill="%23818cf8" font-family="monospace" font-size="16" font-weight="bold">SMART CITY SKY TOWER</text></svg>`
+};
+
 // Initial realistic sample survey datasets for SIH 2026 demonstration
 const DEFAULT_PROJECTS: Project[] = [
   {
@@ -11,7 +17,7 @@ const DEFAULT_PROJECTS: Project[] = [
     provider: 'demo',
     created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     model_url: '/demo/build.glb',
-    thumbnail_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?auto=format&fit=crop&w=800&q=80',
+    thumbnail_url: SVG_THUMBNAILS.academic,
     isDemo: true,
     metadata: {
       vertices: 48520,
@@ -38,7 +44,7 @@ const DEFAULT_PROJECTS: Project[] = [
     provider: 'demo',
     created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
     model_url: '/demo/build.glb',
-    thumbnail_url: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80',
+    thumbnail_url: SVG_THUMBNAILS.logistics,
     isDemo: true,
     metadata: {
       vertices: 64200,
@@ -65,7 +71,7 @@ const DEFAULT_PROJECTS: Project[] = [
     provider: 'demo',
     created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
     model_url: '/demo/build.glb',
-    thumbnail_url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80',
+    thumbnail_url: SVG_THUMBNAILS.tower,
     isDemo: true,
     metadata: {
       vertices: 89400,
@@ -170,7 +176,11 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const backendProjects = await api.getProjects();
       if (backendProjects && backendProjects.length > 0) {
         setProjects(backendProjects);
-        setActiveProject(backendProjects[0]);
+        // Ensure activeProject stays valid or defaults to backendProjects[0]
+        setActiveProject(prev => {
+          const match = backendProjects.find(p => p.id === prev?.id);
+          return match || backendProjects[0];
+        });
       }
     } catch (err) {
       console.warn('Backend API refresh notice: Using local state');
