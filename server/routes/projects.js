@@ -67,7 +67,17 @@ router.post('/upload', upload.array('files', 50), async (req, res) => {
       return ext === '.glb' || ext === '.gltf';
     });
 
-    const modelUrl = glbFile ? `/uploads/${glbFile.filename}` : '/demo/build.glb';
+    let modelUrl = glbFile ? `/api/uploads/${glbFile.filename}` : null;
+
+    if (!modelUrl) {
+      const nameLower = (metadata.projectName || '').toLowerCase();
+      const publicDemoDir = path.join(process.cwd(), 'public', 'demo');
+      if (fs.existsSync(path.join(publicDemoDir, 'taj_mahal_3d_model.glb')) && (nameLower.includes('taj') || nameLower.includes('mahal') || nameLower.includes('tj'))) {
+        modelUrl = '/demo/taj_mahal_3d_model.glb';
+      } else {
+        modelUrl = '/demo/build.glb';
+      }
+    }
     
     // Pass metadata and modelUrl to provider createCapture
     const newProject = await demoProvider.createCapture({

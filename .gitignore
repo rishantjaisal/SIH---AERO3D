@@ -24,9 +24,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Uploads & temporary media
+# Uploads & heavy 3D GLB assets
 server/uploads/*
 !server/uploads/.gitkeep
+
+# Heavy 3D GLB Models
+public/demo/taj_mahal_3d_model.glb
+public/demo/ruined_city_free_5.glb
 
 # IDE & System
 .vscode/

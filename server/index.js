@@ -25,7 +25,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static uploads, demo assets, and frontend client build
-app.use('/uploads', express.static(path.join(process.cwd(), 'server', 'uploads')));
+const uploadsPath = path.join(process.cwd(), 'server', 'uploads');
+app.use('/uploads', express.static(uploadsPath));
+app.use('/api/uploads', express.static(uploadsPath));
 app.use('/demo', express.static(path.join(process.cwd(), 'public', 'demo')));
 
 const distPath = path.join(process.cwd(), 'dist');
