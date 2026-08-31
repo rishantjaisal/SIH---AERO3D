@@ -7,7 +7,7 @@ import { InspectionMarkers } from './InspectionMarkers';
 import { MeasurementTool } from './MeasurementTool';
 import { ActiveTool, RenderMode, CameraPreset } from './FloatingToolbar';
 import { InspectionMarker, Measurement3D, Project } from '../../types';
-import { AlertTriangle, RefreshCw, Box, EyeOff } from 'lucide-react';
+import { AlertTriangle, RefreshCw, EyeOff } from 'lucide-react';
 
 interface ThreeCanvasProps {
   activeTool: ActiveTool;
@@ -25,7 +25,7 @@ interface ThreeCanvasProps {
   onMetricsUpdate?: (metrics: ModelMetrics) => void;
 }
 
-const LoadingOverlay: React.FC = () => {
+const LoadingOverlay: React.FC<{ projectName?: string }> = ({ projectName }) => {
   const { progress } = useProgress();
   return (
     <div className="absolute inset-0 z-30 bg-aerospace-950/80 backdrop-blur-md flex flex-col items-center justify-center p-6 select-none font-mono">
@@ -34,7 +34,9 @@ const LoadingOverlay: React.FC = () => {
           <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
           <span>REAL PHOTOGRAMMETRY DEMO</span>
         </div>
-        <h3 className="text-sm font-bold tracking-wider text-slate-100 uppercase">LOADING 3D DIGITAL TWIN</h3>
+        <h3 className="text-sm font-bold tracking-wider text-slate-100 uppercase">
+          LOADING {projectName ? projectName.toUpperCase() : '3D DIGITAL TWIN'}
+        </h3>
         <div className="space-y-2">
           <div className="w-full h-3 bg-aerospace-950 rounded-full overflow-hidden border border-slate-800 p-0.5">
             <div
@@ -43,7 +45,7 @@ const LoadingOverlay: React.FC = () => {
             />
           </div>
           <div className="flex justify-between text-xs text-slate-400">
-            <span>Loading photogrammetry model...</span>
+            <span>Loading 3D photogrammetry model...</span>
             <span className="text-sky-300 font-bold">{Math.round(progress)}%</span>
           </div>
         </div>
@@ -53,7 +55,7 @@ const LoadingOverlay: React.FC = () => {
 };
 
 class GLTFErrorBoundary extends React.Component<
-  { children: React.ReactNode; fallback: (error: Error, reset: () => void) => React.ReactNode },
+  { children: React.ReactNode; projectUrl: string; fallback: (error: Error, reset: () => void) => React.ReactNode },
   { hasError: boolean; error: Error | null }
 > {
   constructor(props: any) {
@@ -174,6 +176,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   };
 
   const gridScale = modelMetrics ? Math.max(80, modelMetrics.maxDimension * 3) : 100;
+  const targetUrl = project?.model_url || '/demo/build.glb';
 
   return (
     <div className="w-full h-full relative bg-aerospace-950">
@@ -194,7 +197,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       )}
 
       <GLTFErrorBoundary
-        fallback={(error, reset) => (
+        projectUrl={targetUrl}
+        fallback={(_error, reset) => (
           <div className="absolute inset-0 z-30 bg-aerospace-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center select-none font-mono">
             <div className="max-w-md w-full glass-panel-elevated p-6 rounded-2xl border border-rose-500/40 space-y-4 shadow-2xl">
               <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
@@ -202,23 +206,25 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               </div>
               <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wide">3D MODEL FAILED TO LOAD</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Check that <code className="text-sky-300 bg-slate-900 px-1.5 py-0.5 rounded">/demo/build.glb</code> exists in <code className="text-slate-300">public/demo/</code>.
+                Check that <code className="text-sky-300 bg-slate-900 px-1.5 py-0.5 rounded">{targetUrl}</code> exists in <code className="text-slate-300">public/demo/</code>.
               </p>
-              <button
-                onClick={() => {
-                  reset();
-                  window.location.reload();
-                }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-aerospace-950 font-bold text-xs shadow-lg transition-all"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Retry Loading Model</span>
-              </button>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={() => {
+                    reset();
+                    window.location.reload();
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-aerospace-950 font-bold text-xs shadow-lg transition-all"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Retry Loading Model</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
       >
-        <Suspense fallback={<LoadingOverlay />}>
+        <Suspense fallback={<LoadingOverlay projectName={project?.name} />}>
           <Canvas
             shadows
             gl={{ preserveDrawingBuffer: true, antialias: true, powerPreference: 'high-performance' }}
@@ -233,7 +239,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               dampingFactor={0.05}
               maxPolarAngle={Math.PI / 2 + 0.05}
               minDistance={1}
-              maxDistance={300}
+              maxDistance={500}
               enabled={activeTool === 'orbit'}
             />
 

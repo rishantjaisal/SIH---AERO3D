@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, Suspense } from 'react';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { Project } from '../../types';
@@ -134,20 +134,67 @@ const GLBModelMesh: React.FC<{
   return <primitive object={clonedScene} />;
 };
 
+class LocalGLTFBoundary extends React.Component<
+  { children: React.ReactNode; fallbackUrl?: string; renderMode: 'textured' | 'wireframe' | 'solid' | 'pointcloud'; onModelLoaded?: (metrics: ModelMetrics) => void; onHasPointcloudChange?: (hasPointCloud: boolean) => void },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any) {
+    console.warn('[Aero3D] Secondary GLB load notice:', error);
+  }
+
+  render() {
+    if (this.state.hasError && this.props.fallbackUrl) {
+      return (
+        <Suspense fallback={null}>
+          <GLBModelMesh
+            url={this.props.fallbackUrl}
+            renderMode={this.props.renderMode}
+            onModelLoaded={this.props.onModelLoaded}
+            onHasPointcloudChange={this.props.onHasPointcloudChange}
+          />
+        </Suspense>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export const BuildingModel: React.FC<BuildingModelProps> = ({
   renderMode,
   project,
   onModelLoaded,
   onHasPointcloudChange
 }) => {
-  const modelUrl = project?.model_url || '/demo/build.glb';
+  const pName = (project?.name || '').toLowerCase();
+  
+  // Resolve best candidate model URL
+  let targetUrl = project?.model_url || '/demo/build.glb';
+  if (pName.includes('taj') || pName.includes('mahal') || pName.includes('tj')) {
+    targetUrl = '/demo/taj_mahal_3d_model.glb';
+  }
 
   return (
-    <GLBModelMesh
-      url={modelUrl}
+    <LocalGLTFBoundary
+      fallbackUrl="/demo/build.glb"
       renderMode={renderMode}
       onModelLoaded={onModelLoaded}
       onHasPointcloudChange={onHasPointcloudChange}
-    />
+    >
+      <GLBModelMesh
+        url={targetUrl}
+        renderMode={renderMode}
+        onModelLoaded={onModelLoaded}
+        onHasPointcloudChange={onHasPointcloudChange}
+      />
+    </LocalGLTFBoundary>
   );
 };
