@@ -4,19 +4,14 @@ import {
   Box,
   Layers,
   MapPin,
-  Ruler,
-  Compass,
-  Scale,
-  Maximize,
   X,
-  AlertTriangle,
   ArrowLeft,
-  Share2,
-  Download
+  Scale
 } from 'lucide-react';
 import { ThreeCanvas } from '../components/viewer/ThreeCanvas';
 import { FloatingToolbar, ActiveTool, RenderMode, CameraPreset } from '../components/viewer/FloatingToolbar';
 import { ModelInfoPanel } from '../components/viewer/ModelInfoPanel';
+import { ModelMetrics } from '../components/viewer/BuildingModel';
 import { useProjects } from '../store/ProjectContext';
 import { Project } from '../types';
 
@@ -30,11 +25,6 @@ const DEFAULT_FALLBACK_PROJECT: Project = {
   thumbnail_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?auto=format&fit=crop&w=800&q=80',
   isDemo: true,
   metadata: {
-    vertices: 48520,
-    faces: 92400,
-    boundingBox: { x: 34.5, y: 18.2, z: 24.8 },
-    estimatedArea: 855.6,
-    estimatedHeight: 18.2,
     locationName: 'Delhi NCR, India',
     gps: { latitude: 28.7523, longitude: 77.4988 },
     gsd: '1.2 cm/px',
@@ -43,8 +33,7 @@ const DEFAULT_FALLBACK_PROJECT: Project = {
     cameraModel: '20MP Micro 4/3 CMOS',
     flightAltitude: '45 m',
     weather: 'Clear, 12 km/h Wind',
-    operator: 'Aero3D Flight Lead',
-    accuracyNote: 'DEMO MODEL — Uncalibrated photogrammetry scale.'
+    operator: 'Aero3D Flight Lead'
   }
 };
 
@@ -54,10 +43,8 @@ export const ViewerPage: React.FC = () => {
   const {
     projects,
     activeProject,
-    setActiveProject,
     markers,
     addMarker,
-    deleteMarker,
     measurements,
     addMeasurement,
     clearMeasurements,
@@ -75,6 +62,7 @@ export const ViewerPage: React.FC = () => {
   const [cameraPreset, setCameraPreset] = useState<CameraPreset>('default');
   const [showInfoPanel, setShowInfoPanel] = useState<boolean>(true);
   const [showCalibrationModal, setShowCalibrationModal] = useState<boolean>(false);
+  const [loadedMetrics, setLoadedMetrics] = useState<ModelMetrics | null>(null);
 
   // Pin marker creation dialog state
   const [pendingMarkerPoint, setPendingMarkerPoint] = useState<[number, number, number] | null>(null);
@@ -126,7 +114,7 @@ export const ViewerPage: React.FC = () => {
     const canvas = document.querySelector('canvas');
     if (canvas) {
       const link = document.createElement('a');
-      link.download = `${currentProj.name}-3D-Snapshot.png`;
+      link.download = 'Aero3D-Photogrammetry-Snapshot.png';
       link.href = canvas.toDataURL('image/png');
       link.click();
     }
@@ -146,11 +134,16 @@ export const ViewerPage: React.FC = () => {
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <h1 className="font-bold text-sm text-slate-100 font-mono tracking-wide truncate max-w-xs sm:max-w-md">
-              {currentProj.name}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-bold text-sm text-slate-100 font-mono tracking-wide truncate max-w-xs sm:max-w-md">
+                {currentProj.name}
+              </h1>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                REAL PHOTOGRAMMETRY DEMO
+              </span>
+            </div>
             <p className="text-[10px] text-slate-400 font-sans">
-              3D WebGL Digital Twin • {currentProj.metadata?.locationName || 'Delhi NCR, India'}
+              Photogrammetry model imported into Aero3D • {currentProj.metadata?.locationName || 'Delhi NCR, India'}
             </p>
           </div>
         </div>
@@ -219,6 +212,7 @@ export const ViewerPage: React.FC = () => {
             isCalibrated={isCalibrated}
             projectId={currentProj.id}
             project={currentProj}
+            onMetricsUpdate={setLoadedMetrics}
           />
         </div>
 
@@ -226,6 +220,8 @@ export const ViewerPage: React.FC = () => {
         {showInfoPanel && (
           <ModelInfoPanel
             project={currentProj}
+            metrics={loadedMetrics}
+            isCalibrated={isCalibrated}
             onClose={() => setShowInfoPanel(false)}
           />
         )}
@@ -350,7 +346,7 @@ export const ViewerPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Measured Model Distance (units)</label>
+                <label className="block text-slate-300 font-medium mb-1">Measured Model Distance (model units)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -362,7 +358,7 @@ export const ViewerPage: React.FC = () => {
               </div>
 
               <div className="p-3 rounded-lg bg-aerospace-950 border border-slate-800 text-[11px] font-mono text-sky-400">
-                Calculated Scale Multiplier $S$: {(parseFloat(calibrationInput.knownDistance) / (parseFloat(calibrationInput.measuredDistance) || 1)).toFixed(4)}
+                Calculated Scale Multiplier: {(parseFloat(calibrationInput.knownDistance) / (parseFloat(calibrationInput.measuredDistance) || 1)).toFixed(4)}
               </div>
 
               <div className="flex justify-end gap-2 pt-2">

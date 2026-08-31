@@ -14,11 +14,11 @@ export interface GPSCoordinate {
 }
 
 export interface ProjectMetadata {
-  vertices: number;
-  faces: number;
-  boundingBox: BoundingBox3D;
-  estimatedArea: number; // in sq meters
-  estimatedHeight: number; // in meters
+  vertices?: number;
+  faces?: number;
+  boundingBox?: BoundingBox3D;
+  estimatedArea?: number; // in sq meters
+  estimatedHeight?: number; // in meters
   locationName: string;
   gps: GPSCoordinate | null;
   gsd: string; // e.g. "1.2 cm/px"
