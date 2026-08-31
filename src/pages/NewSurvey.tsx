@@ -101,18 +101,20 @@ export const NewSurvey: React.FC = () => {
         setActiveProject(response.project);
         navigate(`/processing/${response.project.id}`);
       } else {
-        const glbFile = selectedFiles.find(f => f.name.endsWith('.glb') || f.name.endsWith('.gltf'));
-        const modelUrl = glbFile ? URL.createObjectURL(glbFile) : '/demo/build.glb';
         const newProjId = `proj-${Date.now()}`;
+        const nameLower = (formData.projectName || '').toLowerCase();
+        const modelUrl = (nameLower.includes('taj') || nameLower.includes('mahal') || nameLower.includes('tj'))
+          ? '/demo/taj_mahal_3d_model.glb'
+          : `/api/projects/${newProjId}/model`;
 
         const mockNewProj = {
           id: newProjId,
-          name: formData.projectName || 'Taj Mahal 3D Digital Twin Survey',
+          name: formData.projectName || 'Drone 3D Digital Twin Survey',
           status: 'SUCCEEDED' as const,
           provider: (providerStatus?.mode || 'demo') as any,
           created_at: new Date().toISOString(),
           model_url: modelUrl,
-          thumbnail_url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="180" y="100" width="240" height="200" rx="8" fill="%230284c7" opacity="0.3" stroke="%2338bdf8" stroke-width="2"/><polygon points="300,40 220,100 380,100" fill="%2338bdf8" opacity="0.6"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">TAJ MAHAL DIGITAL TWIN</text></svg>',
+          thumbnail_url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="180" y="100" width="240" height="200" rx="8" fill="%230284c7" opacity="0.3" stroke="%2338bdf8" stroke-width="2"/><polygon points="300,40 220,100 380,100" fill="%2338bdf8" opacity="0.6"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">DRONE DIGITAL TWIN</text></svg>',
           isDemo: true,
           metadata: generateUniqueMetadata(formData.projectName)
         };
@@ -122,18 +124,20 @@ export const NewSurvey: React.FC = () => {
         navigate(`/processing/${newProjId}`);
       }
     } catch (_err) {
-      const glbFile = selectedFiles.find(f => f.name.endsWith('.glb') || f.name.endsWith('.gltf'));
-      const modelUrl = glbFile ? URL.createObjectURL(glbFile) : '/demo/build.glb';
       const newProjId = `proj-${Date.now()}`;
+      const nameLower = (formData.projectName || '').toLowerCase();
+      const modelUrl = (nameLower.includes('taj') || nameLower.includes('mahal') || nameLower.includes('tj'))
+        ? '/demo/taj_mahal_3d_model.glb'
+        : `/api/projects/${newProjId}/model`;
 
       const mockNewProj = {
         id: newProjId,
-        name: formData.projectName || 'Taj Mahal 3D Digital Twin Survey',
+        name: formData.projectName || 'Drone 3D Digital Twin Survey',
         status: 'SUCCEEDED' as const,
         provider: 'demo' as const,
         created_at: new Date().toISOString(),
         model_url: modelUrl,
-        thumbnail_url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="180" y="100" width="240" height="200" rx="8" fill="%230284c7" opacity="0.3" stroke="%2338bdf8" stroke-width="2"/><polygon points="300,40 220,100 380,100" fill="%2338bdf8" opacity="0.6"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">TAJ MAHAL DIGITAL TWIN</text></svg>',
+        thumbnail_url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="180" y="100" width="240" height="200" rx="8" fill="%230284c7" opacity="0.3" stroke="%2338bdf8" stroke-width="2"/><polygon points="300,40 220,100 380,100" fill="%2338bdf8" opacity="0.6"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">DRONE DIGITAL TWIN</text></svg>',
         isDemo: true,
         metadata: generateUniqueMetadata(formData.projectName)
       };
@@ -259,7 +263,7 @@ export const NewSurvey: React.FC = () => {
                       required
                       value={formData.projectName}
                       onChange={e => setFormData({ ...formData, projectName: e.target.value })}
-                      placeholder="e.g. Taj Mahal 3D Digital Twin Survey"
+                      placeholder="e.g. Drone Digital Twin Survey Site"
                       className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-sky-400"
                     />
                   </div>
@@ -365,7 +369,7 @@ export const NewSurvey: React.FC = () => {
                   </div>
                   <div className="flex justify-between border-b border-slate-800 pb-2">
                     <span className="text-slate-400">Project Title:</span>
-                    <span className="font-semibold text-slate-200">{formData.projectName || 'Taj Mahal 3D Digital Twin Survey'}</span>
+                    <span className="font-semibold text-slate-200">{formData.projectName || 'Drone 3D Digital Twin Survey'}</span>
                   </div>
                   <div className="flex justify-between border-b border-slate-800 pb-2">
                     <span className="text-slate-400">Drone Hardware:</span>
