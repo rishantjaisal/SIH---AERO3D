@@ -1,5 +1,4 @@
-import React, { useMemo, useEffect, Suspense } from 'react';
-import { useGLTF } from '@react-three/drei';
+import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { Project } from '../../types';
 
@@ -18,7 +17,7 @@ function getHashSeed(str: string = 'demo'): number {
   return Math.abs(hash);
 }
 
-const ProceduralBuilding: React.FC<BuildingModelProps> = ({ renderMode, project }) => {
+export const BuildingModel: React.FC<BuildingModelProps> = ({ renderMode, project }) => {
   const isWireframe = renderMode === 'wireframe';
   const isPoints = renderMode === 'pointcloud';
 
@@ -224,37 +223,5 @@ const ProceduralBuilding: React.FC<BuildingModelProps> = ({ renderMode, project 
       )}
 
     </group>
-  );
-};
-
-const GLBModelMesh: React.FC<{ url: string; renderMode: string }> = ({ url, renderMode }) => {
-  const { scene } = useGLTF(url);
-  const clonedScene = useMemo(() => scene.clone(), [scene]);
-
-  useEffect(() => {
-    clonedScene.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        if (mesh.material) {
-          (mesh.material as any).wireframe = renderMode === 'wireframe';
-        }
-      }
-    });
-  }, [clonedScene, renderMode]);
-
-  return <primitive object={clonedScene} position={[0, 0, 0]} />;
-};
-
-export const BuildingModel: React.FC<BuildingModelProps> = (props) => {
-  const modelUrl = props.project?.model_url || '/demo/build.glb';
-
-  return (
-    <Suspense fallback={<ProceduralBuilding {...props} />}>
-      {modelUrl ? (
-        <GLBModelMesh url={modelUrl} renderMode={props.renderMode} />
-      ) : (
-        <ProceduralBuilding {...props} />
-      )}
-    </Suspense>
   );
 };
