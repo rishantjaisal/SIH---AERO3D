@@ -4,6 +4,7 @@ import {
   UploadCloud,
   File,
   CheckCircle2,
+  AlertCircle,
   ArrowRight,
   ArrowLeft,
   X
@@ -21,36 +22,58 @@ export const NewSurvey: React.FC = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [validationError, setValidationError] = useState<string>('');
 
-  // Metadata form state
+  // Metadata form state without fake defaults
   const [formData, setFormData] = useState({
     projectName: '',
     location: '',
-    latitude: '27.1751',
-    longitude: '78.0421',
+    latitude: '',
+    longitude: '',
     surveyDate: new Date().toISOString().split('T')[0],
     description: '',
-    droneModel: 'DJI Mavic 3 Enterprise RTK',
-    cameraModel: '20MP Micro 4/3 CMOS',
-    flightAltitude: '45 m',
-    gsd: '1.2 cm/px',
-    weather: 'Clear, 10 km/h Wind',
-    operator: 'Aero3D Flight Lead'
+    droneModel: '',
+    cameraModel: '',
+    flightAltitude: '',
+    gsd: '',
+    weather: '',
+    operator: ''
   });
+
+  const ALLOWED_EXTENSIONS = ['.mp4', '.mov', '.mkv', '.jpg', '.jpeg', '.png', '.zip', '.glb', '.gltf', '.obj', '.ply'];
+  const MAX_FILE_SIZE = 250 * 1024 * 1024; // 250 MB
+
+  const validateAndAddFiles = (files: File[]) => {
+    setValidationError('');
+    const valid: File[] = [];
+
+    for (const file of files) {
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+      if (!ALLOWED_EXTENSIONS.includes(ext)) {
+        setValidationError(`File "${file.name}" has an unsupported format. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`);
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        setValidationError(`File "${file.name}" (${(file.size / (1024 * 1024)).toFixed(1)} MB) exceeds maximum allowed 250 MB size.`);
+        return;
+      }
+      valid.push(file);
+    }
+
+    setSelectedFiles(prev => [...prev, ...valid]);
+  };
 
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const files = Array.from(e.dataTransfer.files);
-      setSelectedFiles(prev => [...prev, ...files]);
+      validateAndAddFiles(Array.from(e.dataTransfer.files));
     }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files);
-      setSelectedFiles(prev => [...prev, ...files]);
+      validateAndAddFiles(Array.from(e.target.files));
     }
   };
 
@@ -58,37 +81,25 @@ export const NewSurvey: React.FC = () => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const generateUniqueMetadata = (name: string) => {
-    const timestamp = Date.now();
-    const seed = timestamp % 999;
-    const widthVal = 24 + (seed % 20);
-    const heightVal = 12 + (seed % 18);
-    const depthVal = 20 + (seed % 20);
-    const verticesVal = 42000 + (seed * 90);
-    const facesVal = 84000 + (seed * 180);
-    const areaVal = Math.round(widthVal * depthVal);
-
-    return {
-      vertices: verticesVal,
-      faces: facesVal,
-      boundingBox: { x: widthVal, y: heightVal, z: depthVal },
-      estimatedArea: areaVal,
-      estimatedHeight: heightVal,
-      locationName: formData.location || 'Agra, Uttar Pradesh, India',
-      gps: { latitude: Number(formData.latitude) || 27.1751, longitude: Number(formData.longitude) || 78.0421 },
-      gsd: formData.gsd || '1.2 cm/px',
-      surveyDate: formData.surveyDate || new Date().toISOString().split('T')[0],
-      droneModel: formData.droneModel || 'DJI Mavic 3 Enterprise RTK',
-      cameraModel: formData.cameraModel || '20MP Micro 4/3 CMOS',
-      flightAltitude: formData.flightAltitude || '45 m',
-      weather: formData.weather || 'Clear Sky',
-      operator: formData.operator || 'Aero3D Inspector Pilot'
-    };
+  const handleNextStep = () => {
+    if (step === 1 && selectedFiles.length === 0) {
+      setValidationError('Please upload at least one drone video, image, image archive, or 3D model.');
+      return;
+    }
+    setValidationError('');
+    setStep(s => Math.min(4, s + 1));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (selectedFiles.length === 0) {
+      setValidationError('Please upload at least one drone video, image, image archive, or 3D model.');
+      setStep(1);
+      return;
+    }
+
     setLoading(true);
+    setValidationError('');
 
     try {
       const formPayload = new FormData();
@@ -97,54 +108,23 @@ export const NewSurvey: React.FC = () => {
 
       const response = await api.createSurvey(formPayload);
       if (response && response.project) {
-        addProject(response.project);
-        setActiveProject(response.project);
-        navigate(`/processing/${response.project.id}`);
+        const proj = response.project;
+        addProject(proj);
+        setActiveProject(proj);
+
+        // If GLB 3D model uploaded directly, navigate directly to viewer
+        if (proj.inputType === 'model' || selectedFiles.some(f => f.name.endsWith('.glb') || f.name.endsWith('.gltf'))) {
+          navigate(`/viewer/${proj.id}`);
+        } else {
+          // Trigger asynchronous photogrammetry pipeline job
+          api.processProject(proj.id).catch(() => {});
+          navigate(`/processing/${proj.id}`);
+        }
       } else {
-        const newProjId = `proj-${Date.now()}`;
-        const nameLower = (formData.projectName || '').toLowerCase();
-        const modelUrl = (nameLower.includes('taj') || nameLower.includes('mahal') || nameLower.includes('tj'))
-          ? '/demo/taj_mahal_3d_model.glb'
-          : `/api/projects/${newProjId}/model`;
-
-        const mockNewProj = {
-          id: newProjId,
-          name: formData.projectName || 'Drone 3D Digital Twin Survey',
-          status: 'SUCCEEDED' as const,
-          provider: (providerStatus?.mode || 'demo') as any,
-          created_at: new Date().toISOString(),
-          model_url: modelUrl,
-          thumbnail_url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="180" y="100" width="240" height="200" rx="8" fill="%230284c7" opacity="0.3" stroke="%2338bdf8" stroke-width="2"/><polygon points="300,40 220,100 380,100" fill="%2338bdf8" opacity="0.6"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">DRONE DIGITAL TWIN</text></svg>',
-          isDemo: true,
-          metadata: generateUniqueMetadata(formData.projectName)
-        };
-
-        addProject(mockNewProj);
-        setActiveProject(mockNewProj);
-        navigate(`/processing/${newProjId}`);
+        throw new Error('Project creation failed on backend server.');
       }
-    } catch (_err) {
-      const newProjId = `proj-${Date.now()}`;
-      const nameLower = (formData.projectName || '').toLowerCase();
-      const modelUrl = (nameLower.includes('taj') || nameLower.includes('mahal') || nameLower.includes('tj'))
-        ? '/demo/taj_mahal_3d_model.glb'
-        : `/api/projects/${newProjId}/model`;
-
-      const mockNewProj = {
-        id: newProjId,
-        name: formData.projectName || 'Drone 3D Digital Twin Survey',
-        status: 'SUCCEEDED' as const,
-        provider: 'demo' as const,
-        created_at: new Date().toISOString(),
-        model_url: modelUrl,
-        thumbnail_url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="180" y="100" width="240" height="200" rx="8" fill="%230284c7" opacity="0.3" stroke="%2338bdf8" stroke-width="2"/><polygon points="300,40 220,100 380,100" fill="%2338bdf8" opacity="0.6"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">DRONE DIGITAL TWIN</text></svg>',
-        isDemo: true,
-        metadata: generateUniqueMetadata(formData.projectName)
-      };
-
-      addProject(mockNewProj);
-      setActiveProject(mockNewProj);
-      navigate(`/processing/${newProjId}`);
+    } catch (err: any) {
+      setValidationError(err.message || 'Failed to upload and create survey project.');
     } finally {
       setLoading(false);
     }
@@ -183,6 +163,14 @@ export const NewSurvey: React.FC = () => {
             </div>
           </div>
 
+          {/* Validation Error Alert */}
+          {validationError && (
+            <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-mono flex items-center gap-3">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{validationError}</span>
+            </div>
+          )}
+
           {/* Step Form Container */}
           <form onSubmit={handleSubmit} className="p-6 rounded-2xl glass-panel-elevated border border-slate-700/80 shadow-2xl space-y-6">
             
@@ -190,9 +178,9 @@ export const NewSurvey: React.FC = () => {
             {step === 1 && (
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-100">Upload Drone Footage or 3D Assets</h3>
+                  <h3 className="text-lg font-bold text-slate-100">Upload Drone Footage or 3D Assets *</h3>
                   <p className="text-xs text-slate-400">
-                    Drop flight videos (MP4, MOV), overlapping image zip archives, or existing 3D models (GLB, GLTF, OBJ, PLY).
+                    Drop flight videos (MP4, MOV, MKV), overlapping image archives (JPG, PNG, ZIP), or existing 3D models (GLB, GLTF, OBJ, PLY).
                   </p>
                 </div>
 
@@ -208,7 +196,7 @@ export const NewSurvey: React.FC = () => {
                   <input
                     type="file"
                     multiple
-                    accept=".mp4,.mov,.jpg,.jpeg,.png,.zip,.glb,.gltf,.obj,.ply"
+                    accept=".mp4,.mov,.mkv,.jpg,.jpeg,.png,.zip,.glb,.gltf,.obj,.ply"
                     onChange={handleFileSelect}
                     className="hidden"
                     id="drone-file-upload"
@@ -219,7 +207,7 @@ export const NewSurvey: React.FC = () => {
                       Drop drone footage or images here, or <span className="text-sky-400 underline">browse files</span>
                     </p>
                     <p className="text-xs text-slate-500 font-mono">
-                      Supported: MP4, MOV, JPG, PNG, ZIP archives, GLB, GLTF, OBJ (Max 250MB)
+                      Supported: MP4, MOV, MKV, JPG, PNG, ZIP, GLB, GLTF, OBJ (Max 250 MB per file)
                     </p>
                   </label>
                 </div>
@@ -252,18 +240,18 @@ export const NewSurvey: React.FC = () => {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-bold text-slate-100">Survey Metadata & Location</h3>
-                  <p className="text-xs text-slate-400">Define target survey location and site coordinates.</p>
+                  <p className="text-xs text-slate-400">Define survey location name and optional site coordinates.</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div>
-                    <label className="block text-slate-300 font-medium mb-1">Project Name *</label>
+                    <label className="block text-slate-300 font-medium mb-1">Project Title *</label>
                     <input
                       type="text"
                       required
                       value={formData.projectName}
                       onChange={e => setFormData({ ...formData, projectName: e.target.value })}
-                      placeholder="e.g. Drone Digital Twin Survey Site"
+                      placeholder="e.g. Industrial Complex Drone Survey"
                       className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-sky-400"
                     />
                   </div>
@@ -274,27 +262,29 @@ export const NewSurvey: React.FC = () => {
                       type="text"
                       value={formData.location}
                       onChange={e => setFormData({ ...formData, location: e.target.value })}
-                      placeholder="e.g. Agra, Uttar Pradesh, India"
+                      placeholder="e.g. Survey Site Location"
                       className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-sky-400"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-slate-300 font-medium mb-1">GPS Latitude (°N)</label>
+                    <label className="block text-slate-300 font-medium mb-1">GPS Latitude (°N) (Optional)</label>
                     <input
                       type="text"
                       value={formData.latitude}
                       onChange={e => setFormData({ ...formData, latitude: e.target.value })}
+                      placeholder="Leave empty if GPS unavailable"
                       className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 font-mono focus:outline-none focus:border-sky-400"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-slate-300 font-medium mb-1">GPS Longitude (°E)</label>
+                    <label className="block text-slate-300 font-medium mb-1">GPS Longitude (°E) (Optional)</label>
                     <input
                       type="text"
                       value={formData.longitude}
                       onChange={e => setFormData({ ...formData, longitude: e.target.value })}
+                      placeholder="Leave empty if GPS unavailable"
                       className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 font-mono focus:outline-none focus:border-sky-400"
                     />
                   </div>
@@ -306,27 +296,29 @@ export const NewSurvey: React.FC = () => {
             {step === 3 && (
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-100">Equipment & Flight Specifications</h3>
-                  <p className="text-xs text-slate-400">Drone sensor parameters for photogrammetry calibration.</p>
+                  <h3 className="text-lg font-bold text-slate-100">Equipment & Flight Specifications (Optional)</h3>
+                  <p className="text-xs text-slate-400">Specify hardware sensors or leave blank.</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div>
-                    <label className="block text-slate-300 font-medium mb-1">Drone Model</label>
+                    <label className="block text-slate-300 font-medium mb-1">Drone Hardware Model</label>
                     <input
                       type="text"
                       value={formData.droneModel}
                       onChange={e => setFormData({ ...formData, droneModel: e.target.value })}
+                      placeholder="e.g. DJI Quadcopter / Unspecified"
                       className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-sky-400"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-slate-300 font-medium mb-1">Camera Sensor</label>
+                    <label className="block text-slate-300 font-medium mb-1">Camera Sensor Specs</label>
                     <input
                       type="text"
                       value={formData.cameraModel}
                       onChange={e => setFormData({ ...formData, cameraModel: e.target.value })}
+                      placeholder="e.g. 20MP / 4K RGB Camera"
                       className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-sky-400"
                     />
                   </div>
@@ -337,16 +329,18 @@ export const NewSurvey: React.FC = () => {
                       type="text"
                       value={formData.flightAltitude}
                       onChange={e => setFormData({ ...formData, flightAltitude: e.target.value })}
+                      placeholder="e.g. 50 m"
                       className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 font-mono focus:outline-none focus:border-sky-400"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-slate-300 font-medium mb-1">Target GSD</label>
+                    <label className="block text-slate-300 font-medium mb-1">Target Ground Sample Distance (GSD)</label>
                     <input
                       type="text"
                       value={formData.gsd}
                       onChange={e => setFormData({ ...formData, gsd: e.target.value })}
+                      placeholder="e.g. 1.0 cm/px"
                       className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 font-mono focus:outline-none focus:border-sky-400"
                     />
                   </div>
@@ -369,15 +363,21 @@ export const NewSurvey: React.FC = () => {
                   </div>
                   <div className="flex justify-between border-b border-slate-800 pb-2">
                     <span className="text-slate-400">Project Title:</span>
-                    <span className="font-semibold text-slate-200">{formData.projectName || 'Drone 3D Digital Twin Survey'}</span>
+                    <span className="font-semibold text-slate-200">{formData.projectName || 'Uploaded Drone Survey'}</span>
                   </div>
                   <div className="flex justify-between border-b border-slate-800 pb-2">
                     <span className="text-slate-400">Drone Hardware:</span>
-                    <span className="text-slate-200">{formData.droneModel}</span>
+                    <span className="text-slate-200">{formData.droneModel || 'Not Specified'}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-800 pb-2">
+                    <span className="text-slate-400">GPS Coordinates:</span>
+                    <span className="font-mono text-slate-300">
+                      {formData.latitude && formData.longitude ? `${formData.latitude}°N, ${formData.longitude}°E` : 'GPS Unavailable'}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Uploaded Assets:</span>
-                    <span className="font-mono text-emerald-400 font-semibold">{selectedFiles.length || 1} File(s)</span>
+                    <span className="text-slate-400">Uploaded Files:</span>
+                    <span className="font-mono text-emerald-400 font-semibold">{selectedFiles.length} File(s)</span>
                   </div>
                 </div>
               </div>
@@ -399,7 +399,7 @@ export const NewSurvey: React.FC = () => {
               {step < 4 ? (
                 <button
                   type="button"
-                  onClick={() => setStep(s => s + 1)}
+                  onClick={handleNextStep}
                   className="flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-aerospace-950 font-bold text-xs shadow-md"
                 >
                   <span>Next Step</span>
@@ -412,7 +412,7 @@ export const NewSurvey: React.FC = () => {
                   className="flex items-center gap-2 px-6 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-aerospace-950 font-bold text-xs shadow-lg transition-all"
                 >
                   {loading ? (
-                    <span>Processing Ingestion...</span>
+                    <span>Uploading Drone Data...</span>
                   ) : (
                     <>
                       <CheckCircle2 className="w-4 h-4" />

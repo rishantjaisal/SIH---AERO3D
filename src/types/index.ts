@@ -1,5 +1,5 @@
 export type ProjectStatus = 'PROCESSING' | 'SUCCEEDED' | 'FAILED' | 'QUEUED';
-export type ProviderType = 'polycam' | 'demo' | 'local';
+export type ProviderType = 'polycam' | 'demo' | 'local' | 'colmap';
 
 export interface BoundingBox3D {
   x: number;
@@ -19,16 +19,17 @@ export interface ProjectMetadata {
   boundingBox?: BoundingBox3D;
   estimatedArea?: number; // in sq meters
   estimatedHeight?: number; // in meters
-  locationName: string;
-  gps: GPSCoordinate | null;
-  gsd: string; // e.g. "1.2 cm/px"
-  surveyDate: string;
-  droneModel: string;
-  cameraModel: string;
-  flightAltitude: string;
-  weather: string;
-  operator: string;
+  locationName?: string;
+  gps?: GPSCoordinate | null;
+  gsd?: string;
+  surveyDate?: string;
+  droneModel?: string;
+  cameraModel?: string;
+  flightAltitude?: string;
+  weather?: string;
+  operator?: string;
   accuracyNote?: string;
+  scaleStatus?: 'uncalibrated' | 'calibrated';
 }
 
 export interface Project {
@@ -41,6 +42,11 @@ export interface Project {
   thumbnail_url: string;
   metadata: ProjectMetadata;
   isDemo?: boolean;
+  inputType?: 'video' | 'photos' | 'model';
+  inputFile?: string;
+  reconstructionEngine?: string;
+  processingJobId?: string | null;
+  jobStatus?: string;
 }
 
 export interface AIObjectDetection {

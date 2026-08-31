@@ -3,28 +3,24 @@ import path from 'path';
 import fs from 'fs';
 
 const SVG_THUMBNAILS = {
-  academic: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="150" y="120" width="300" height="180" rx="6" fill="%231e293b" stroke="%2338bdf8" stroke-width="2"/><rect x="180" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="240" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="300" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="360" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><polygon points="250,120 300,70 350,120" fill="%230284c7"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">KIET CAMPUS DIGITAL TWIN</text></svg>`,
-  logistics: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="80" y="160" width="440" height="140" rx="6" fill="%230f172a" stroke="%2334d399" stroke-width="2"/><rect x="110" y="180" width="60" height="120" fill="%231e293b" stroke="%2334d399" stroke-width="1"/><rect x="190" y="180" width="60" height="120" fill="%231e293b" stroke="%2334d399" stroke-width="1"/><rect x="270" y="180" width="60" height="120" fill="%231e293b" stroke="%2334d399" stroke-width="1"/><rect x="350" y="180" width="60" height="120" fill="%231e293b" stroke="%2334d399" stroke-width="1"/><text x="300" y="340" text-anchor="middle" fill="%2334d399" font-family="monospace" font-size="16" font-weight="bold">LOGISTICS COMPLEX TWIN</text></svg>`,
-  tower: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="220" y="80" width="160" height="220" rx="8" fill="%230284c7" opacity="0.3" stroke="%2338bdf8" stroke-width="2"/><rect x="250" y="50" width="100" height="250" rx="4" fill="%2338bdf8" opacity="0.5"/><line x1="300" y1="10" x2="300" y2="50" stroke="%2338bdf8" stroke-width="4"/><text x="300" y="340" text-anchor="middle" fill="%23818cf8" font-family="monospace" font-size="16" font-weight="bold">SMART CITY SKY TOWER</text></svg>`
+  academic: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="150" y="120" width="300" height="180" rx="6" fill="%231e293b" stroke="%2338bdf8" stroke-width="2"/><rect x="180" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="240" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="300" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="360" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><polygon points="250,120 300,70 350,120" fill="%230284c7"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">KIET CAMPUS DIGITAL TWIN</text></svg>`
 };
 
 export class DemoProvider extends ReconstructionProvider {
   constructor() {
-    super('Demo/Local');
+    super('Demo/Local Engine');
     this.demoCaptures = [
       {
         id: 'demo-proj-001',
         name: 'KIET Campus Building Survey',
         status: 'SUCCEEDED',
+        provider: 'demo',
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
         model_url: '/demo/build.glb',
         thumbnail_url: SVG_THUMBNAILS.academic,
+        isDemo: true,
+        reconstructionEngine: 'demo',
         metadata: {
-          vertices: 48520,
-          faces: 92400,
-          boundingBox: { x: 28.0, y: 14.0, z: 18.0 },
-          estimatedArea: 855.6,
-          estimatedHeight: 18.2,
           locationName: 'Delhi NCR, India',
           gps: { latitude: 28.7523, longitude: 77.4988 },
           gsd: '1.2 cm/px',
@@ -32,56 +28,9 @@ export class DemoProvider extends ReconstructionProvider {
           droneModel: 'DJI Mavic 3 Enterprise RTK',
           cameraModel: '20MP Micro 4/3 CMOS',
           flightAltitude: '45 m',
-          weather: 'Clear, 12 km/h Wind',
-          operator: 'Aero3D Mission Flight Lead'
-        }
-      },
-      {
-        id: 'demo-proj-002',
-        name: 'Aero3D Industrial Logistics Complex',
-        status: 'SUCCEEDED',
-        created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
-        model_url: '/demo/build.glb',
-        thumbnail_url: SVG_THUMBNAILS.logistics,
-        metadata: {
-          vertices: 64200,
-          faces: 118900,
-          boundingBox: { x: 44.0, y: 12.0, z: 32.0 },
-          estimatedArea: 1976.0,
-          estimatedHeight: 12.5,
-          locationName: 'Noida Tech Sector, India',
-          gps: { latitude: 28.5355, longitude: 77.3910 },
-          gsd: '0.9 cm/px',
-          surveyDate: '2026-08-25',
-          droneModel: 'Matrice 300 RTK + Zenmuse P1',
-          cameraModel: '45MP Full Frame',
-          flightAltitude: '60 m',
-          weather: 'Overcast, 8 km/h Wind',
-          operator: 'Senior GIS Surveyor'
-        }
-      },
-      {
-        id: 'demo-proj-003',
-        name: 'Smart City Innovation Sky Tower',
-        status: 'SUCCEEDED',
-        created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
-        model_url: '/demo/build.glb',
-        thumbnail_url: SVG_THUMBNAILS.tower,
-        metadata: {
-          vertices: 89400,
-          faces: 162100,
-          boundingBox: { x: 22.0, y: 28.0, z: 22.0 },
-          estimatedArea: 680.0,
-          estimatedHeight: 28.0,
-          locationName: 'Gurugram Cyber City, India',
-          gps: { latitude: 28.4595, longitude: 77.0266 },
-          gsd: '0.7 cm/px',
-          surveyDate: '2026-08-20',
-          droneModel: 'DJI Inspire 3 RTK',
-          cameraModel: 'Zenmuse X9-8K Air',
-          flightAltitude: '75 m',
-          weather: 'Clear, 15 km/h Wind',
-          operator: 'Chief Aerospace Inspector'
+          weather: 'Clear',
+          operator: 'Aero3D Flight Lead',
+          accuracyNote: 'DEMO SAMPLE — Real photogrammetry model (public/demo/build.glb).'
         }
       }
     ];
@@ -101,7 +50,7 @@ export class DemoProvider extends ReconstructionProvider {
       return { ...capture, isDemo: true };
     }
 
-    // Dynamic capture resolution for newly created project IDs
+    // Dynamic capture lookup for created projects
     const projectStorageDir = path.join(process.cwd(), 'storage', 'projects', id);
     const customModelPath = path.join(projectStorageDir, 'output', 'model.glb');
     const hasCustomModel = fs.existsSync(customModelPath);
@@ -109,26 +58,23 @@ export class DemoProvider extends ReconstructionProvider {
     return {
       id,
       name: `Drone Survey Digital Twin ${id}`,
-      status: 'SUCCEEDED',
+      status: hasCustomModel ? 'SUCCEEDED' : 'QUEUED',
+      provider: 'demo',
       created_at: new Date().toISOString(),
-      model_url: hasCustomModel ? `/api/projects/${id}/model` : '/demo/build.glb',
+      model_url: `/api/projects/${id}/model`,
       thumbnail_url: SVG_THUMBNAILS.academic,
       isDemo: true,
+      reconstructionEngine: 'demo',
       metadata: {
-        vertices: 52000,
-        faces: 98000,
-        boundingBox: { x: 32.0, y: 18.0, z: 24.0 },
-        estimatedArea: 768.0,
-        estimatedHeight: 18.0,
-        locationName: 'Survey Site Location',
-        gps: { latitude: 28.7523, longitude: 77.4988 },
-        gsd: '1.2 cm/px',
+        locationName: '',
+        gps: null,
+        gsd: '',
         surveyDate: new Date().toISOString().split('T')[0],
-        droneModel: 'DJI Mavic 3 Enterprise RTK',
-        cameraModel: '4K Photogrammetry Camera',
-        flightAltitude: '45 m',
-        weather: 'Clear Sky',
-        operator: 'Aero3D Flight Lead'
+        droneModel: '',
+        cameraModel: '',
+        flightAltitude: '',
+        weather: '',
+        operator: ''
       }
     };
   }
@@ -137,9 +83,7 @@ export class DemoProvider extends ReconstructionProvider {
     const capture = await this.getCapture(id);
     const mUrl = capture?.model_url || `/api/projects/${id}/model`;
     return [
-      { type: 'glb', url: mUrl, label: '3D GLB Digital Twin Mesh' },
-      { type: 'orthomosaic', url: SVG_THUMBNAILS.academic, label: '2D Orthomosaic Map' },
-      { type: 'pointcloud', url: null, label: 'LAS/PLY Point Cloud (On Request)' }
+      { type: 'glb', url: mUrl, label: '3D GLB Digital Twin Mesh' }
     ];
   }
 
@@ -150,39 +94,36 @@ export class DemoProvider extends ReconstructionProvider {
       status: 'COMPLETED',
       format,
       download_url: mUrl,
-      isDemo: true,
-      message: 'DEMO MODE: Returning 3D survey model asset.'
+      isDemo: true
     };
   }
 
   async createCapture(options) {
     const newId = options.projectId || options.id || `proj-${Date.now()}`;
-    
-    // Check if project already exists in demoCaptures list
     const existingIdx = this.demoCaptures.findIndex(c => c.id === newId);
+
+    const hasGps = typeof options.latitude === 'number' && typeof options.longitude === 'number';
 
     const newCapture = {
       id: newId,
-      name: options.name || 'New Drone Survey Digital Twin',
-      status: 'SUCCEEDED',
+      name: options.name || 'Uploaded Drone Survey',
+      status: options.status || 'QUEUED',
+      provider: 'demo',
       created_at: new Date().toISOString(),
       model_url: options.model_url || `/api/projects/${newId}/model`,
       thumbnail_url: SVG_THUMBNAILS.academic,
+      isDemo: true,
+      reconstructionEngine: 'demo',
       metadata: {
-        vertices: 52000,
-        faces: 98000,
-        boundingBox: { x: 32.0, y: 18.0, z: 24.0 },
-        estimatedArea: 768.0,
-        estimatedHeight: 18.0,
-        locationName: options.location || 'Location Unspecified',
-        gps: options.latitude ? { latitude: Number(options.latitude), longitude: Number(options.longitude) } : { latitude: 27.1751, longitude: 78.0421 },
-        gsd: options.gsd || '1.2 cm/px',
+        locationName: options.location || '',
+        gps: hasGps ? { latitude: options.latitude, longitude: options.longitude } : null,
+        gsd: options.gsd || '',
         surveyDate: options.surveyDate || new Date().toISOString().split('T')[0],
-        droneModel: options.droneModel || 'DJI Mavic 3 Enterprise RTK',
-        cameraModel: options.cameraModel || '4K Photogrammetry Camera',
-        flightAltitude: options.flightAltitude || '50 m',
-        weather: options.weather || 'Clear Sky',
-        operator: options.operator || 'Aero3D Flight Lead'
+        droneModel: options.droneModel || '',
+        cameraModel: options.cameraModel || '',
+        flightAltitude: options.flightAltitude || '',
+        weather: options.weather || '',
+        operator: options.operator || ''
       }
     };
 

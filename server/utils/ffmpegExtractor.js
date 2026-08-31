@@ -3,9 +3,8 @@ import path from 'path';
 import fs from 'fs';
 
 /**
- * Utility module for video validation & FFmpeg frame extraction
+ * Checks system FFmpeg binary availability in PATH
  */
-
 export function isFFmpegAvailable() {
   try {
     execSync('ffmpeg -version', { stdio: 'ignore' });
@@ -35,7 +34,7 @@ export function validateMediaFile(filePath, originalName, fileSize) {
 }
 
 /**
- * Extract frames from a video file into targetFramesDir at specified FPS
+ * Extract frames from a video file into targetFramesDir at specified FPS using FFmpeg
  */
 export async function extractFramesFromVideo(videoPath, targetFramesDir, fps = 3, onProgress = () => {}) {
   if (!fs.existsSync(targetFramesDir)) {
@@ -43,16 +42,7 @@ export async function extractFramesFromVideo(videoPath, targetFramesDir, fps = 3
   }
 
   if (!isFFmpegAvailable()) {
-    console.warn('[Aero3D FFmpeg] System FFmpeg executable not found in PATH. Using direct frame buffer allocation.');
-    // Generate sample frame images if FFmpeg is absent so pipeline continues without crashing
-    for (let i = 1; i <= 30; i++) {
-      const pad = String(i).padStart(6, '0');
-      const framePath = path.join(targetFramesDir, `frame_${pad}.jpg`);
-      if (!fs.existsSync(framePath)) {
-        fs.writeFileSync(framePath, Buffer.from('FAKEDRONEFRAMEIMAGEHEADERDATA'));
-      }
-    }
-    return { frameCount: 30, fps };
+    throw new Error('FFmpeg executable is not installed or configured in system PATH.');
   }
 
   return new Promise((resolve, reject) => {
@@ -60,7 +50,7 @@ export async function extractFramesFromVideo(videoPath, targetFramesDir, fps = 3
     const args = [
       '-y',
       '-i', videoPath,
-      '-vf', `fps=${fps},select='gt(scene,0.01)'`,
+      '-vf', `fps=${fps}`,
       '-vsync', 'vfr',
       '-q:v', '2',
       outputPattern
@@ -80,21 +70,12 @@ export async function extractFramesFromVideo(videoPath, targetFramesDir, fps = 3
         const files = fs.readdirSync(targetFramesDir).filter(f => f.endsWith('.jpg'));
         resolve({ frameCount: files.length, fps });
       } else {
-        // Fallback: simple fps extraction without scene filter
-        const simpleArgs = ['-y', '-i', videoPath, '-r', `${fps}`, '-q:v', '2', outputPattern];
-        const simpleProc = spawn('ffmpeg', simpleArgs);
-        simpleProc.on('close', (simpleCode) => {
-          const files = fs.readdirSync(targetFramesDir).filter(f => f.endsWith('.jpg'));
-          resolve({ frameCount: files.length, fps });
-        });
+        reject(new Error(`FFmpeg frame extraction exited with error code ${code}`));
       }
     });
 
     ffmpegProc.on('error', (err) => {
-      console.warn('[Aero3D FFmpeg] Process notice:', err.message);
-      // Fallback fallback
-      const files = fs.readdirSync(targetFramesDir).filter(f => f.endsWith('.jpg'));
-      resolve({ frameCount: Math.max(12, files.length), fps });
+      reject(new Error(`FFmpeg execution error: ${err.message}`));
     });
   });
 }

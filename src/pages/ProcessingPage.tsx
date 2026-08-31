@@ -9,7 +9,8 @@ import {
   FileText,
   AlertTriangle,
   RefreshCw,
-  UploadCloud
+  UploadCloud,
+  Layers
 } from 'lucide-react';
 import { Sidebar } from '../components/layout/Sidebar';
 import { Topbar } from '../components/layout/Topbar';
@@ -41,14 +42,12 @@ export const ProcessingPage: React.FC = () => {
         }
       }
     } catch (_err) {
-      // Fallback local status timer if offline
+      // Backend status polling notice
     }
   }, [targetId, refreshData]);
 
-  // Initiate reconstruction job on mount
   useEffect(() => {
     let isMounted = true;
-    api.processProject(targetId).catch(() => {});
 
     fetchJobStatus();
     const interval = setInterval(() => {
@@ -61,33 +60,36 @@ export const ProcessingPage: React.FC = () => {
     };
   }, [targetId, fetchJobStatus]);
 
-  // Timer
+  // Elapsed timer for user reference
   useEffect(() => {
     const timer = setInterval(() => setElapsed(e => e + 1), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const progress = job ? job.progress : Math.min(100, Math.round((elapsed / 6) * 100));
-  const isCompleted = job ? job.status === 'completed' : progress >= 100;
+  const isCompleted = job ? job.status === 'completed' : currentProject?.status === 'SUCCEEDED';
   const isFailed = job ? job.status === 'failed' : false;
+  const isEngineUnavailable = job?.stage === 'ENGINE_UNAVAILABLE';
+  const progress = job ? job.progress : isCompleted ? 100 : 0;
 
   const stagesList = [
-    { key: 'FRAME_EXTRACTION', label: 'Video Frame Extraction' },
+    { key: 'QUEUED', label: 'Queued in Processing Pipeline' },
+    { key: 'FRAME_EXTRACTION', label: 'FFmpeg Video Frame Extraction' },
     { key: 'FEATURE_EXTRACTION', label: 'Feature Keypoint Extraction' },
     { key: 'FEATURE_MATCHING', label: 'Feature Matching & Overlap Alignment' },
     { key: 'SPARSE_RECONSTRUCTION', label: 'Camera Pose & Sparse Point Cloud' },
     { key: 'DENSE_RECONSTRUCTION', label: 'Multi-View Stereo Dense Cloud' },
-    { key: 'MESH_GENERATION', label: '3D Mesh Surface Geometry' },
-    { key: 'TEXTURE_GENERATION', label: '4K UV Texture Map Baking' },
-    { key: 'COMPLETED', label: 'GLB Digital Twin Export' },
+    { key: 'MESH_GENERATION', label: '3D Surface Mesh Reconstruction' },
+    { key: 'TEXTURE_GENERATION', label: 'UV Texture Map Baking' },
+    { key: 'GLB_CONVERSION', label: 'GLB Output Asset Export' },
+    { key: 'COMPLETED', label: 'Digital Twin Ready' }
   ];
 
   const getStageIndex = (stage: string) => {
     const idx = stagesList.findIndex(s => s.key === stage);
-    return idx >= 0 ? idx : Math.floor((progress / 100) * (stagesList.length - 1));
+    return idx >= 0 ? idx : 0;
   };
 
-  const currentStageIdx = getStageIndex(job?.stage || 'FRAME_EXTRACTION');
+  const currentStageIdx = isCompleted ? stagesList.length - 1 : getStageIndex(job?.stage || 'QUEUED');
 
   const handleLaunchViewer = () => {
     if (currentProject) {
@@ -96,42 +98,48 @@ export const ProcessingPage: React.FC = () => {
     navigate(`/viewer/${targetId}`);
   };
 
+  const handleUseDemoModel = () => {
+    navigate(`/viewer/demo-proj-001`);
+  };
+
   return (
     <div className="flex h-screen bg-aerospace-950 text-slate-100 overflow-hidden font-sans">
       
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <Topbar title="3D Photogrammetry Processing Pipeline" />
+        <Topbar title="Reconstruction Pipeline Status" />
 
         <main className="p-6 max-w-3xl mx-auto w-full space-y-6 my-auto">
           
-          {/* Main Processing Card */}
+          {/* Main Status Card */}
           <div className="p-8 rounded-2xl glass-panel-elevated border border-slate-700/80 shadow-2xl space-y-6 text-center">
             
             {/* Header Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-300 font-mono text-xs">
               <Activity className="w-3.5 h-3.5 text-sky-400 animate-spin-slow" />
-              <span>PHOTOGRAMMETRY ENGINE: {(job?.reconstructionEngine || providerStatus?.mode || 'demo').toUpperCase()}</span>
+              <span>RECONSTRUCTION ENGINE: {(job?.reconstructionEngine || providerStatus?.mode || 'demo').toUpperCase()}</span>
             </div>
 
             <h2 className="text-2xl font-extrabold text-slate-100">
               {isCompleted
-                ? '3D Digital Twin Model Ready'
+                ? (job?.reconstructionEngine === 'demo' ? 'DEMO MODE — Sample Photogrammetry Model Ready' : '3D Reconstruction Completed')
                 : isFailed
-                ? 'Reconstruction Engine Failure'
-                : 'Generating 3D Digital Twin Mesh'}
+                ? (isEngineUnavailable ? 'Reconstruction Engine Unavailable' : 'Reconstruction Failed')
+                : job
+                ? 'Reconstructing 3D Digital Twin'
+                : 'Waiting for processing job...'}
             </h2>
 
-            <p className="text-slate-400 text-xs max-w-lg mx-auto">
-              {job?.message || 'Extracting volumetric surface geometry, baking UV texture maps, and generating GLB model output.'}
+            <p className="text-slate-400 text-xs max-w-lg mx-auto leading-relaxed">
+              {job?.message || (job ? 'Executing backend photogrammetry pipeline stages.' : 'Initialising job queue status from backend server...')}
             </p>
 
             {/* Progress Bar & Percentage */}
             <div className="space-y-2 max-w-md mx-auto">
               <div className="flex justify-between text-xs font-mono font-bold">
                 <span className={isFailed ? 'text-rose-400' : isCompleted ? 'text-emerald-400' : 'text-sky-400'}>
-                  {isFailed ? 'FAILED' : isCompleted ? 'COMPLETED' : 'Reconstructing...'}
+                  {isFailed ? 'FAILED' : isCompleted ? 'COMPLETED' : 'Processing...'}
                 </span>
                 <span className="text-slate-200">{progress}%</span>
               </div>
@@ -151,41 +159,41 @@ export const ProcessingPage: React.FC = () => {
 
               <div className="flex justify-between text-[10px] font-mono text-slate-500">
                 <span>Elapsed: {elapsed}s</span>
-                <span>Stage: {job?.stageLabel || 'Processing'}</span>
+                <span>Stage: {job?.stageLabel || (job ? 'Queued' : 'Waiting')}</span>
               </div>
             </div>
 
             {/* Error Diagnostics State */}
             {isFailed && (
-              <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-left space-y-2 max-w-md mx-auto">
+              <div className="p-5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-left space-y-3 max-w-md mx-auto">
                 <div className="flex items-center gap-2 text-rose-400 text-xs font-bold font-mono">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>PHOTOGRAMMETRY RECONSTRUCTION FAILED</span>
+                  <span>{isEngineUnavailable ? 'ENGINE UNAVAILABLE' : 'RECONSTRUCTION FAILED'}</span>
                 </div>
-                <p className="text-xs text-slate-300 font-sans">
-                  {errorMsg}
+                <p className="text-xs text-slate-300 font-sans leading-relaxed">
+                  {errorMsg || 'COLMAP is not available on this machine. Install/configure COLMAP or switch to Demo Mode.'}
                 </p>
                 <div className="pt-2 flex gap-3">
                   <button
-                    onClick={() => window.location.reload()}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold"
+                    onClick={handleUseDemoModel}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-aerospace-950 text-xs font-bold shadow-md"
                   >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Retry Pipeline</span>
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>Use Demo Model</span>
                   </button>
                   <button
                     onClick={() => navigate('/projects/new')}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-aerospace-950 text-xs font-bold"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold"
                   >
                     <UploadCloud className="w-3.5 h-3.5" />
-                    <span>Upload New Dataset</span>
+                    <span>Upload Different Dataset</span>
                   </button>
                 </div>
               </div>
             )}
 
             {/* Step-by-step Timeline */}
-            {!isFailed && (
+            {!isFailed && job && (
               <div className="text-left bg-aerospace-950/80 p-4 rounded-xl border border-slate-800 space-y-2.5 max-w-md mx-auto">
                 {stagesList.map((stepItem, idx) => {
                   const isDone = idx < currentStageIdx || isCompleted;
@@ -205,6 +213,27 @@ export const ProcessingPage: React.FC = () => {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Quality Metrics Summary (Only displayed if returned by actual engine) */}
+            {isCompleted && job?.qualityMetrics && !job.qualityMetrics.isDemoSample && (
+              <div className="p-4 rounded-xl bg-aerospace-950 border border-slate-800 text-left text-xs space-y-2 max-w-md mx-auto">
+                <div className="font-mono font-bold text-sky-300 uppercase border-b border-slate-800 pb-1">
+                  Reconstruction Quality Metrics
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Input Images:</span>
+                  <span className="font-mono text-slate-200">{job.qualityMetrics.inputImages || 'Not available'}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Registered Images:</span>
+                  <span className="font-mono text-slate-200">{job.qualityMetrics.registeredImages || 'Not available'}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Sparse Point Cloud:</span>
+                  <span className="font-mono text-slate-200">{job.qualityMetrics.sparsePoints || 'Not available'}</span>
+                </div>
               </div>
             )}
 

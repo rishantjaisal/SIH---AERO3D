@@ -22,7 +22,7 @@ const DEFAULT_FALLBACK_PROJECT: Project = {
   provider: 'demo',
   created_at: new Date().toISOString(),
   model_url: '/demo/build.glb',
-  thumbnail_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?auto=format&fit=crop&w=800&q=80',
+  thumbnail_url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="150" y="120" width="300" height="180" rx="6" fill="%231e293b" stroke="%2338bdf8" stroke-width="2"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">KIET CAMPUS DIGITAL TWIN</text></svg>',
   isDemo: true,
   metadata: {
     locationName: 'Delhi NCR, India',
@@ -32,7 +32,7 @@ const DEFAULT_FALLBACK_PROJECT: Project = {
     droneModel: 'DJI Mavic 3 Enterprise RTK',
     cameraModel: '20MP Micro 4/3 CMOS',
     flightAltitude: '45 m',
-    weather: 'Clear, 12 km/h Wind',
+    weather: 'Clear',
     operator: 'Aero3D Flight Lead'
   }
 };
@@ -120,6 +120,8 @@ export const ViewerPage: React.FC = () => {
     }
   };
 
+  const isDemoProject = currentProj.isDemo || currentProj.provider === 'demo' || currentProj.id === 'demo-proj-001';
+
   return (
     <div className="flex flex-col h-screen bg-aerospace-950 text-slate-100 overflow-hidden font-sans select-none">
       
@@ -138,12 +140,14 @@ export const ViewerPage: React.FC = () => {
               <h1 className="font-bold text-sm text-slate-100 font-mono tracking-wide truncate max-w-xs sm:max-w-md">
                 {currentProj.name}
               </h1>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-sky-500/20 text-sky-300 border border-sky-500/30">
-                REAL PHOTOGRAMMETRY DEMO
+              <span className={`px-2 py-0.5 rounded text-[10px] font-mono border ${
+                isDemoProject ? 'bg-sky-500/20 text-sky-300 border-sky-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+              }`}>
+                {isDemoProject ? 'DEMO MODE — REAL PHOTOGRAMMETRY SAMPLE' : '3D DIGITAL TWIN MODEL'}
               </span>
             </div>
             <p className="text-[10px] text-slate-400 font-sans">
-              Photogrammetry model imported into Aero3D • {currentProj.metadata?.locationName || 'Delhi NCR, India'}
+              {currentProj.metadata?.locationName ? `Location: ${currentProj.metadata.locationName}` : 'Survey Location: Unspecified'}
             </p>
           </div>
         </div>
