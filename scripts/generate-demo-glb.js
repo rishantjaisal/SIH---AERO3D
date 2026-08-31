@@ -3,94 +3,92 @@ import path from 'path';
 
 async function run() {
   const publicDemoDir = path.join(process.cwd(), 'public', 'demo');
-  const glbPath = path.join(publicDemoDir, 'build.glb');
+  const glbPath = path.join(process.cwd(), 'public', 'demo', 'build.glb');
 
   if (!fs.existsSync(publicDemoDir)) {
     fs.mkdirSync(publicDemoDir, { recursive: true });
   }
 
-  // CRITICAL REQUIREMENT: Do NOT overwrite real photogrammetry model if it exists!
+  // Preserve real photogrammetry model (> 100 KB) if present
   if (fs.existsSync(glbPath)) {
     const stats = fs.statSync(glbPath);
-    if (stats.size > 0) {
+    if (stats.size > 100000) {
       console.log(`[Aero3D GLB Pipeline] Real photogrammetry model detected at ${glbPath} (${(stats.size / 1024 / 1024).toFixed(2)} MB). Preserving asset.`);
       return;
     }
   }
 
-  console.log('[Aero3D GLB Pipeline] No existing build.glb found. Generating fallback binary GLB asset...');
+  console.log('[Aero3D GLB Pipeline] Generating valid fallback GLTF model file...');
 
-  // Valid minimal GLB binary container buffer
-  const jsonText = JSON.stringify({
-    asset: { version: "2.0", generator: "Aero3D Pipeline" },
-    scenes: [{ nodes: [0] }],
-    nodes: [{ mesh: 0, name: "BuildingCore" }],
+  // Valid 3D Box Geometry glTF representation with embedded Base64 buffer
+  const positions = new Float32Array([
+    // Front face
+    -14, 0, 9,   14, 0, 9,   14, 14, 9,   -14, 14, 9,
+    // Back face
+    -14, 0, -9,  -14, 14, -9, 14, 14, -9,  14, 0, -9,
+    // Top face
+    -14, 14, -9, -14, 14, 9,  14, 14, 9,   14, 14, -9,
+    // Bottom face
+    -14, 0, -9,  14, 0, -9,   14, 0, 9,    -14, 0, 9,
+    // Right face
+    14, 0, -9,   14, 14, -9,  14, 14, 9,   14, 0, 9,
+    // Left face
+    -14, 0, -9,  -14, 0, 9,   -14, 14, 9,  -14, 14, -9
+  ]);
+
+  const indices = new Uint16Array([
+    0, 1, 2, 0, 2, 3,       // Front
+    4, 5, 6, 4, 6, 7,       // Back
+    8, 9, 10, 8, 10, 11,    // Top
+    12, 13, 14, 12, 14, 15, // Bottom
+    16, 17, 18, 16, 18, 19, // Right
+    20, 21, 22, 20, 22, 23  // Left
+  ]);
+
+  const posBuffer = Buffer.from(positions.buffer);
+  const idxBuffer = Buffer.from(indices.buffer);
+  const combinedBuffer = Buffer.concat([posBuffer, idxBuffer]);
+
+  const b64Data = combinedBuffer.toString('base64');
+  const dataUri = `data:application/octet-stream;base64,${b64Data}`;
+
+  const gltfContent = {
+    asset: { version: "2.0", generator: "Aero3D Photogrammetry Fallback" },
+    scenes: [{ name: "Scene", nodes: [0] }],
+    nodes: [{ name: "BuildingCore", mesh: 0 }],
     meshes: [{
+      name: "BuildingMesh",
       primitives: [{
         attributes: { POSITION: 0 },
         indices: 1,
-        mode: 4
+        material: 0
       }]
     }],
-    buffers: [{ byteLength: 108 }],
+    materials: [{
+      name: "BuildingMaterial",
+      pbrMetallicRoughness: {
+        baseColorFactor: [0.2, 0.35, 0.5, 1.0],
+        metallicFactor: 0.2,
+        roughnessFactor: 0.4
+      }
+    }],
+    buffers: [{
+      byteLength: combinedBuffer.length,
+      uri: dataUri
+    }],
     bufferViews: [
-      { buffer: 0, byteOffset: 0, byteLength: 96, target: 34962 },
-      { buffer: 0, byteOffset: 96, byteLength: 12, target: 34963 }
+      { buffer: 0, byteOffset: 0, byteLength: posBuffer.length, target: 34962 },
+      { buffer: 0, byteOffset: posBuffer.length, byteLength: idxBuffer.length, target: 34963 }
     ],
     accessors: [
-      { bufferView: 0, byteOffset: 0, componentType: 5126, count: 8, type: "VEC3", max: [14, 14, 9], min: [-14, 0, -9] },
-      { bufferView: 1, byteOffset: 0, componentType: 5123, count: 6, type: "SCALAR" }
+      { bufferView: 0, byteOffset: 0, componentType: 5126, count: 24, type: "VEC3", max: [14, 14, 9], min: [-14, 0, -9] },
+      { bufferView: 1, byteOffset: 0, componentType: 5123, count: 36, type: "SCALAR", max: [23], min: [0] }
     ]
-  });
+  };
 
-  // Pad JSON string to 4-byte alignment with spaces
-  let jsonChunk = Buffer.from(jsonText, 'utf8');
-  const jsonPadding = (4 - (jsonChunk.length % 4)) % 4;
-  if (jsonPadding > 0) {
-    jsonChunk = Buffer.concat([jsonChunk, Buffer.from(' '.repeat(jsonPadding), 'utf8')]);
-  }
-
-  // Binary data buffer (8 vertices + 6 indices for box face)
-  const floatData = new Float32Array([
-    -14, 0, -9,   14, 0, -9,   14, 14, -9,   -14, 14, -9,
-    -14, 0,  9,   14, 0,  9,   14, 14,  9,   -14, 14,  9
-  ]);
-  const indexData = new Uint16Array([0, 1, 2, 0, 2, 3]);
-
-  const binBuffer = Buffer.concat([
-    Buffer.from(floatData.buffer),
-    Buffer.from(indexData.buffer)
-  ]);
-
-  const binPadding = (4 - (binBuffer.length % 4)) % 4;
-  const paddedBinBuffer = binPadding > 0 ? Buffer.concat([binBuffer, Buffer.alloc(binPadding)]) : binBuffer;
-
-  const totalLength = 12 + 8 + jsonChunk.length + 8 + paddedBinBuffer.length;
-  const header = Buffer.alloc(12);
-  header.writeUInt32LE(0x46544C67, 0); // "gTFg"
-  header.writeUInt32LE(2, 4);          // version 2
-  header.writeUInt32LE(totalLength, 8);
-
-  const jsonHeader = Buffer.alloc(8);
-  jsonHeader.writeUInt32LE(jsonChunk.length, 0);
-  jsonHeader.writeUInt32LE(0x4E4F534A, 4); // "JSON"
-
-  const binHeader = Buffer.alloc(8);
-  binHeader.writeUInt32LE(paddedBinBuffer.length, 0);
-  binHeader.writeUInt32LE(0x00415444, 4); // "BIN\0"
-
-  const fullGlb = Buffer.concat([
-    header,
-    jsonHeader,
-    jsonChunk,
-    binHeader,
-    paddedBinBuffer
-  ]);
-
-  fs.writeFileSync(glbPath, fullGlb);
-  console.log(`✅ Successfully generated fallback binary GLB to ${glbPath} (${fullGlb.length} bytes)`);
+  const jsonStr = JSON.stringify(gltfContent, null, 2);
+  fs.writeFileSync(glbPath, jsonStr);
+  console.log(`✅ Successfully written valid fallback GLTF model to ${glbPath} (${(jsonStr.length / 1024).toFixed(1)} KB)`);
 }
 
-run().catch(err => {
-  console.error('[Aero3D GLB Pipeline] Error:', err);
-});
+run().catch(console.error);
