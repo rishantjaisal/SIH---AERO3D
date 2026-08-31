@@ -24,9 +24,11 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Uploads & heavy 3D GLB assets
+# Uploads & heavy 3D GLB assets & project storage
 server/uploads/*
 !server/uploads/.gitkeep
+storage/*
+!storage/.gitkeep
 
 # Heavy 3D GLB Models
 public/demo/taj_mahal_3d_model.glb

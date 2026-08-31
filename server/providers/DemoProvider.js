@@ -1,4 +1,6 @@
 import { ReconstructionProvider } from './ReconstructionProvider.js';
+import path from 'path';
+import fs from 'fs';
 
 const SVG_THUMBNAILS = {
   academic: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="150" y="120" width="300" height="180" rx="6" fill="%231e293b" stroke="%2338bdf8" stroke-width="2"/><rect x="180" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="240" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="300" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="360" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><polygon points="250,120 300,70 350,120" fill="%230284c7"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">KIET CAMPUS DIGITAL TWIN</text></svg>`,
@@ -94,13 +96,46 @@ export class DemoProvider extends ReconstructionProvider {
   }
 
   async getCapture(id) {
-    const capture = this.demoCaptures.find(c => c.id === id) || this.demoCaptures[0];
-    return { ...capture, isDemo: true };
+    const capture = this.demoCaptures.find(c => c.id === id);
+    if (capture) {
+      return { ...capture, isDemo: true };
+    }
+
+    // Dynamic capture resolution for newly created project IDs
+    const projectStorageDir = path.join(process.cwd(), 'storage', 'projects', id);
+    const customModelPath = path.join(projectStorageDir, 'output', 'model.glb');
+    const hasCustomModel = fs.existsSync(customModelPath);
+
+    return {
+      id,
+      name: `Drone Survey Digital Twin ${id}`,
+      status: 'SUCCEEDED',
+      created_at: new Date().toISOString(),
+      model_url: hasCustomModel ? `/api/projects/${id}/model` : '/demo/build.glb',
+      thumbnail_url: SVG_THUMBNAILS.academic,
+      isDemo: true,
+      metadata: {
+        vertices: 52000,
+        faces: 98000,
+        boundingBox: { x: 32.0, y: 18.0, z: 24.0 },
+        estimatedArea: 768.0,
+        estimatedHeight: 18.0,
+        locationName: 'Survey Site Location',
+        gps: { latitude: 28.7523, longitude: 77.4988 },
+        gsd: '1.2 cm/px',
+        surveyDate: new Date().toISOString().split('T')[0],
+        droneModel: 'DJI Mavic 3 Enterprise RTK',
+        cameraModel: '4K Photogrammetry Camera',
+        flightAltitude: '45 m',
+        weather: 'Clear Sky',
+        operator: 'Aero3D Flight Lead'
+      }
+    };
   }
 
   async getArtifacts(id) {
-    const capture = this.demoCaptures.find(c => c.id === id);
-    const mUrl = capture?.model_url || '/demo/build.glb';
+    const capture = await this.getCapture(id);
+    const mUrl = capture?.model_url || `/api/projects/${id}/model`;
     return [
       { type: 'glb', url: mUrl, label: '3D GLB Digital Twin Mesh' },
       { type: 'orthomosaic', url: SVG_THUMBNAILS.academic, label: '2D Orthomosaic Map' },
@@ -109,8 +144,8 @@ export class DemoProvider extends ReconstructionProvider {
   }
 
   async exportModel(id, format = 'glb') {
-    const capture = this.demoCaptures.find(c => c.id === id);
-    const mUrl = capture?.model_url || '/demo/build.glb';
+    const capture = await this.getCapture(id);
+    const mUrl = capture?.model_url || `/api/projects/${id}/model`;
     return {
       status: 'COMPLETED',
       format,
@@ -121,13 +156,17 @@ export class DemoProvider extends ReconstructionProvider {
   }
 
   async createCapture(options) {
-    const newId = `demo-proj-${Date.now()}`;
+    const newId = options.projectId || options.id || `proj-${Date.now()}`;
+    
+    // Check if project already exists in demoCaptures list
+    const existingIdx = this.demoCaptures.findIndex(c => c.id === newId);
+
     const newCapture = {
       id: newId,
       name: options.name || 'New Drone Survey Digital Twin',
-      status: 'PROCESSING',
+      status: 'SUCCEEDED',
       created_at: new Date().toISOString(),
-      model_url: options.model_url || '/demo/build.glb',
+      model_url: options.model_url || `/api/projects/${newId}/model`,
       thumbnail_url: SVG_THUMBNAILS.academic,
       metadata: {
         vertices: 52000,
@@ -147,15 +186,11 @@ export class DemoProvider extends ReconstructionProvider {
       }
     };
 
-    this.demoCaptures.unshift(newCapture);
-
-    // Auto-transition status from PROCESSING to SUCCEEDED after 4 seconds
-    setTimeout(() => {
-      const cap = this.demoCaptures.find(c => c.id === newId);
-      if (cap) {
-        cap.status = 'SUCCEEDED';
-      }
-    }, 4000);
+    if (existingIdx >= 0) {
+      this.demoCaptures[existingIdx] = newCapture;
+    } else {
+      this.demoCaptures.unshift(newCapture);
+    }
 
     return newCapture;
   }

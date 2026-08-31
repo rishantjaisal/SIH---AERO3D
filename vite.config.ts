@@ -5,10 +5,13 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   publicDir: 'public',
+  esbuild: {
+    exclude: ['server/**', 'storage/**', 'public/demo/**']
+  },
   server: {
     port: 3000,
     watch: {
-      ignored: ['**/server/uploads/**', '**/storage/**', '**/backend/**']
+      ignored: ['**/server/uploads/**', '**/storage/**', '**/backend/**', '**/public/demo/**']
     },
     proxy: {
       '/api': {
@@ -37,6 +40,7 @@ export default defineConfig({
     copyPublicDir: false,
     chunkSizeWarningLimit: 2000,
     rollupOptions: {
+      external: ['server/uploads', 'storage'],
       output: {
         manualChunks: {
           'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],

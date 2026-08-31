@@ -174,13 +174,7 @@ export const BuildingModel: React.FC<BuildingModelProps> = ({
   onModelLoaded,
   onHasPointcloudChange
 }) => {
-  const pName = (project?.name || '').toLowerCase();
-  
-  // Resolve best candidate model URL
-  let targetUrl = project?.model_url || '/demo/build.glb';
-  if (pName.includes('taj') || pName.includes('mahal') || pName.includes('tj')) {
-    targetUrl = '/demo/taj_mahal_3d_model.glb';
-  }
+  const targetUrl = project?.model_url || '/demo/build.glb';
 
   return (
     <LocalGLTFBoundary
