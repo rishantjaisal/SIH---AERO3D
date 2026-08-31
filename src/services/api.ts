@@ -4,7 +4,7 @@ import { Project, AIObjectDetection, SystemHealth } from '../types';
 const API_BASE = '/api';
 
 export const api = {
-  // Polycam & Provider Status
+  // Provider Status
   async getProviderStatus() {
     try {
       const res = await axios.get(`${API_BASE}/polycam/status`);
@@ -12,9 +12,9 @@ export const api = {
     } catch (err: any) {
       return {
         mode: 'demo',
-        name: 'Demo/Local Provider',
+        name: 'Demo/Local Engine',
         configured: false,
-        message: err.response?.data?.message || 'Polycam connection unavailable. Running in Demo Mode.'
+        message: err.response?.data?.message || 'Reconstruction engine running in Demo Mode.'
       };
     }
   },
@@ -25,7 +25,7 @@ export const api = {
       const res = await axios.get(`${API_BASE}/projects`);
       return res.data.projects || [];
     } catch (err) {
-      console.warn('Backend unavailable, returning demo projects list');
+      console.warn('Backend unavailable, returning local projects list');
       return [];
     }
   },
@@ -47,6 +47,25 @@ export const api = {
       return res.data;
     } catch (err: any) {
       throw new Error(err.response?.data?.message || 'Failed to upload survey files');
+    }
+  },
+
+  // Asynchronous Photogrammetry Jobs
+  async processProject(projectId: string) {
+    try {
+      const res = await axios.post(`${API_BASE}/projects/${projectId}/process`);
+      return res.data;
+    } catch (err: any) {
+      throw new Error(err.response?.data?.message || 'Failed to queue reconstruction job');
+    }
+  },
+
+  async getJob(jobId: string) {
+    try {
+      const res = await axios.get(`${API_BASE}/jobs/${jobId}`);
+      return res.data.job;
+    } catch (err: any) {
+      return null;
     }
   },
 

@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import polycamRoutes from './routes/polycam.js';
 import projectRoutes from './routes/projects.js';
+import jobRoutes from './routes/jobs.js';
 import aiRoutes from './routes/ai.js';
 import healthRoutes from './routes/health.js';
 import webhookRoutes from './routes/webhooks.js';
@@ -24,10 +25,13 @@ app.use('/api/webhooks', webhookRoutes);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static uploads, demo assets, and frontend client build
+// Serve static uploads, project storage, demo assets, and frontend client build
 const uploadsPath = path.join(process.cwd(), 'server', 'uploads');
+const storagePath = path.join(process.cwd(), 'storage');
+
 app.use('/uploads', express.static(uploadsPath));
 app.use('/api/uploads', express.static(uploadsPath));
+app.use('/storage', express.static(storagePath));
 app.use('/demo', express.static(path.join(process.cwd(), 'public', 'demo')));
 
 const distPath = path.join(process.cwd(), 'dist');
@@ -38,12 +42,13 @@ if (fs.existsSync(distPath)) {
 // API Routes
 app.use('/api/polycam', polycamRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/jobs', jobRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/health', healthRoutes);
 
 // Catch-all route to serve SPA frontend for any non-API request
 app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/demo')) {
+  if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/storage') || req.path.startsWith('/demo')) {
     return next();
   }
   const indexPath = path.join(distPath, 'index.html');
@@ -67,6 +72,6 @@ app.listen(PORT, () => {
   console.log(`==================================================`);
   console.log(`🚀 Aero3D Intelligence Backend Running on Port ${PORT}`);
   console.log(`🌐 Health Check: http://localhost:${PORT}/api/health`);
-  console.log(`⚡ Provider Mode: ${process.env.RECONSTRUCTION_PROVIDER || 'demo'}`);
+  console.log(`⚡ Engine Mode: ${process.env.PHOTOGRAMMETRY_ENGINE || process.env.RECONSTRUCTION_ENGINE || 'demo'}`);
   console.log(`==================================================`);
 });
