@@ -99,20 +99,24 @@ export class DemoProvider extends ReconstructionProvider {
   }
 
   async getArtifacts(id) {
+    const capture = this.demoCaptures.find(c => c.id === id);
+    const mUrl = capture?.model_url || '/demo/build.glb';
     return [
-      { type: 'glb', url: '/demo/build.glb', label: '3D GLB Digital Twin Mesh' },
+      { type: 'glb', url: mUrl, label: '3D GLB Digital Twin Mesh' },
       { type: 'orthomosaic', url: SVG_THUMBNAILS.academic, label: '2D Orthomosaic Map' },
       { type: 'pointcloud', url: null, label: 'LAS/PLY Point Cloud (On Request)' }
     ];
   }
 
   async exportModel(id, format = 'glb') {
+    const capture = this.demoCaptures.find(c => c.id === id);
+    const mUrl = capture?.model_url || '/demo/build.glb';
     return {
       status: 'COMPLETED',
       format,
-      download_url: '/demo/build.glb',
+      download_url: mUrl,
       isDemo: true,
-      message: 'DEMO MODE: Returning sample 3D building asset.'
+      message: 'DEMO MODE: Returning 3D survey model asset.'
     };
   }
 
@@ -123,23 +127,23 @@ export class DemoProvider extends ReconstructionProvider {
       name: options.name || 'New Drone Survey Digital Twin',
       status: 'PROCESSING',
       created_at: new Date().toISOString(),
-      model_url: '/demo/build.glb',
+      model_url: options.model_url || '/demo/build.glb',
       thumbnail_url: SVG_THUMBNAILS.academic,
       metadata: {
-        vertices: 48520,
-        faces: 92400,
-        boundingBox: { x: 30.0, y: 15.0, z: 20.0 },
-        estimatedArea: 600.0,
-        estimatedHeight: 15.0,
+        vertices: 52000,
+        faces: 98000,
+        boundingBox: { x: 32.0, y: 18.0, z: 24.0 },
+        estimatedArea: 768.0,
+        estimatedHeight: 18.0,
         locationName: options.location || 'Location Unspecified',
-        gps: options.latitude ? { latitude: Number(options.latitude), longitude: Number(options.longitude) } : null,
-        gsd: options.gsd || '1.5 cm/px',
+        gps: options.latitude ? { latitude: Number(options.latitude), longitude: Number(options.longitude) } : { latitude: 27.1751, longitude: 78.0421 },
+        gsd: options.gsd || '1.2 cm/px',
         surveyDate: options.surveyDate || new Date().toISOString().split('T')[0],
-        droneModel: options.droneModel || 'Generic Quadcopter Drone',
-        cameraModel: options.cameraModel || '4K Survey Camera',
+        droneModel: options.droneModel || 'DJI Mavic 3 Enterprise RTK',
+        cameraModel: options.cameraModel || '4K Photogrammetry Camera',
         flightAltitude: options.flightAltitude || '50 m',
-        weather: options.weather || 'Normal',
-        operator: options.operator || 'Drone Pilot'
+        weather: options.weather || 'Clear Sky',
+        operator: options.operator || 'Aero3D Flight Lead'
       }
     };
 

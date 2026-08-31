@@ -4,15 +4,9 @@ import {
   UploadCloud,
   File,
   CheckCircle2,
-  AlertCircle,
   ArrowRight,
   ArrowLeft,
-  Box,
-  Compass,
-  Camera,
-  Layers,
-  X,
-  Cpu
+  X
 } from 'lucide-react';
 import { Sidebar } from '../components/layout/Sidebar';
 import { Topbar } from '../components/layout/Topbar';
@@ -21,20 +15,19 @@ import { api } from '../services/api';
 
 export const NewSurvey: React.FC = () => {
   const navigate = useNavigate();
-  const { addProject, providerStatus } = useProjects();
+  const { addProject, setActiveProject, providerStatus } = useProjects();
 
   const [step, setStep] = useState<number>(1);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const [errorMsg, setErrorMsg] = useState<string>('');
 
   // Metadata form state
   const [formData, setFormData] = useState({
     projectName: '',
     location: '',
-    latitude: '28.7523',
-    longitude: '77.4988',
+    latitude: '27.1751',
+    longitude: '78.0421',
     surveyDate: new Date().toISOString().split('T')[0],
     description: '',
     droneModel: 'DJI Mavic 3 Enterprise RTK',
@@ -68,11 +61,11 @@ export const NewSurvey: React.FC = () => {
   const generateUniqueMetadata = (name: string) => {
     const timestamp = Date.now();
     const seed = timestamp % 999;
-    const widthVal = 22 + (seed % 28);
-    const heightVal = 10 + (seed % 22);
-    const depthVal = 16 + (seed % 24);
-    const verticesVal = 32000 + (seed * 85);
-    const facesVal = 64000 + (seed * 160);
+    const widthVal = 24 + (seed % 20);
+    const heightVal = 12 + (seed % 18);
+    const depthVal = 20 + (seed % 20);
+    const verticesVal = 42000 + (seed * 90);
+    const facesVal = 84000 + (seed * 180);
     const areaVal = Math.round(widthVal * depthVal);
 
     return {
@@ -81,13 +74,13 @@ export const NewSurvey: React.FC = () => {
       boundingBox: { x: widthVal, y: heightVal, z: depthVal },
       estimatedArea: areaVal,
       estimatedHeight: heightVal,
-      locationName: formData.location || 'New Drone Survey Site',
-      gps: { latitude: Number(formData.latitude) || 28.7523, longitude: Number(formData.longitude) || 77.4988 },
-      gsd: formData.gsd || '1.0 cm/px',
+      locationName: formData.location || 'Agra, Uttar Pradesh, India',
+      gps: { latitude: Number(formData.latitude) || 27.1751, longitude: Number(formData.longitude) || 78.0421 },
+      gsd: formData.gsd || '1.2 cm/px',
       surveyDate: formData.surveyDate || new Date().toISOString().split('T')[0],
       droneModel: formData.droneModel || 'DJI Mavic 3 Enterprise RTK',
       cameraModel: formData.cameraModel || '20MP Micro 4/3 CMOS',
-      flightAltitude: formData.flightAltitude || '50 m',
+      flightAltitude: formData.flightAltitude || '45 m',
       weather: formData.weather || 'Clear Sky',
       operator: formData.operator || 'Aero3D Inspector Pilot'
     };
@@ -96,7 +89,6 @@ export const NewSurvey: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setErrorMsg('');
 
     try {
       const formPayload = new FormData();
@@ -106,40 +98,48 @@ export const NewSurvey: React.FC = () => {
       const response = await api.createSurvey(formPayload);
       if (response && response.project) {
         addProject(response.project);
+        setActiveProject(response.project);
         navigate(`/processing/${response.project.id}`);
       } else {
-        // Fallback create project locally with unique 3D geometry metadata
+        const glbFile = selectedFiles.find(f => f.name.endsWith('.glb') || f.name.endsWith('.gltf'));
+        const modelUrl = glbFile ? URL.createObjectURL(glbFile) : '/demo/build.glb';
         const newProjId = `proj-${Date.now()}`;
+
         const mockNewProj = {
           id: newProjId,
-          name: formData.projectName || 'Uploaded Drone Survey',
+          name: formData.projectName || 'Taj Mahal 3D Digital Twin Survey',
           status: 'SUCCEEDED' as const,
           provider: (providerStatus?.mode || 'demo') as any,
           created_at: new Date().toISOString(),
-          model_url: '/demo/build.glb',
-          thumbnail_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?auto=format&fit=crop&w=800&q=80',
+          model_url: modelUrl,
+          thumbnail_url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="180" y="100" width="240" height="200" rx="8" fill="%230284c7" opacity="0.3" stroke="%2338bdf8" stroke-width="2"/><polygon points="300,40 220,100 380,100" fill="%2338bdf8" opacity="0.6"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">TAJ MAHAL DIGITAL TWIN</text></svg>',
           isDemo: true,
           metadata: generateUniqueMetadata(formData.projectName)
         };
 
         addProject(mockNewProj);
+        setActiveProject(mockNewProj);
         navigate(`/processing/${newProjId}`);
       }
-    } catch (err: any) {
+    } catch (_err) {
+      const glbFile = selectedFiles.find(f => f.name.endsWith('.glb') || f.name.endsWith('.gltf'));
+      const modelUrl = glbFile ? URL.createObjectURL(glbFile) : '/demo/build.glb';
       const newProjId = `proj-${Date.now()}`;
+
       const mockNewProj = {
         id: newProjId,
-        name: formData.projectName || 'Uploaded Drone Survey',
+        name: formData.projectName || 'Taj Mahal 3D Digital Twin Survey',
         status: 'SUCCEEDED' as const,
         provider: 'demo' as const,
         created_at: new Date().toISOString(),
-        model_url: '/demo/build.glb',
-        thumbnail_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?auto=format&fit=crop&w=800&q=80',
+        model_url: modelUrl,
+        thumbnail_url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="180" y="100" width="240" height="200" rx="8" fill="%230284c7" opacity="0.3" stroke="%2338bdf8" stroke-width="2"/><polygon points="300,40 220,100 380,100" fill="%2338bdf8" opacity="0.6"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">TAJ MAHAL DIGITAL TWIN</text></svg>',
         isDemo: true,
         metadata: generateUniqueMetadata(formData.projectName)
       };
 
       addProject(mockNewProj);
+      setActiveProject(mockNewProj);
       navigate(`/processing/${newProjId}`);
     } finally {
       setLoading(false);
@@ -259,7 +259,7 @@ export const NewSurvey: React.FC = () => {
                       required
                       value={formData.projectName}
                       onChange={e => setFormData({ ...formData, projectName: e.target.value })}
-                      placeholder="e.g. KIET Main Academic Building Survey"
+                      placeholder="e.g. Taj Mahal 3D Digital Twin Survey"
                       className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-sky-400"
                     />
                   </div>
@@ -270,7 +270,7 @@ export const NewSurvey: React.FC = () => {
                       type="text"
                       value={formData.location}
                       onChange={e => setFormData({ ...formData, location: e.target.value })}
-                      placeholder="e.g. Delhi NCR, India"
+                      placeholder="e.g. Agra, Uttar Pradesh, India"
                       className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-sky-400"
                     />
                   </div>
@@ -365,7 +365,7 @@ export const NewSurvey: React.FC = () => {
                   </div>
                   <div className="flex justify-between border-b border-slate-800 pb-2">
                     <span className="text-slate-400">Project Title:</span>
-                    <span className="font-semibold text-slate-200">{formData.projectName || 'KIET Campus Survey'}</span>
+                    <span className="font-semibold text-slate-200">{formData.projectName || 'Taj Mahal 3D Digital Twin Survey'}</span>
                   </div>
                   <div className="flex justify-between border-b border-slate-800 pb-2">
                     <span className="text-slate-400">Drone Hardware:</span>

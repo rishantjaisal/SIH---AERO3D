@@ -60,8 +60,16 @@ router.post('/upload', upload.array('files', 50), async (req, res) => {
   try {
     const metadata = req.body;
     const files = req.files || [];
+
+    // Check if user uploaded a 3D GLB/GLTF model asset
+    const glbFile = files.find(f => {
+      const ext = path.extname(f.originalname).toLowerCase();
+      return ext === '.glb' || ext === '.gltf';
+    });
+
+    const modelUrl = glbFile ? `/uploads/${glbFile.filename}` : '/demo/build.glb';
     
-    // Pass metadata to provider createCapture
+    // Pass metadata and modelUrl to provider createCapture
     const newProject = await demoProvider.createCapture({
       name: metadata.projectName || 'Uploaded Drone Survey',
       location: metadata.location || 'Location Unspecified',
@@ -74,6 +82,7 @@ router.post('/upload', upload.array('files', 50), async (req, res) => {
       flightAltitude: metadata.flightAltitude,
       weather: metadata.weather,
       operator: metadata.operator,
+      model_url: modelUrl,
       fileCount: files.length
     });
 
