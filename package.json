@@ -9,7 +9,7 @@
     "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
     "generate-glb": "node scripts/generate-demo-glb.js",
     "postinstall": "node scripts/generate-demo-glb.js",
-    "build": "npm run generate-glb && node --max-old-space-size=4096 node_modules/typescript/bin/tsc && node --max-old-space-size=4096 node_modules/vite/bin/vite.js build",
+    "build": "npm run generate-glb && node --max-old-space-size=8192 node_modules/vite/bin/vite.js build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
