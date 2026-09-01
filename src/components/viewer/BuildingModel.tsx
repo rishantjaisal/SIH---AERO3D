@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, Suspense } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { Project } from '../../types';
@@ -28,6 +28,7 @@ const GLBModelMesh: React.FC<{
   onHasPointcloudChange?: (hasPointCloud: boolean) => void;
 }> = ({ url, renderMode, onModelLoaded, onHasPointcloudChange }) => {
   const { scene } = useGLTF(url);
+  const reportedUrlRef = useRef<string | null>(null);
 
   // Compute metrics and bounding box once loaded
   const { clonedScene, metrics } = useMemo(() => {
@@ -88,15 +89,18 @@ const GLBModelMesh: React.FC<{
     return { clonedScene: cloned, metrics: modelMetrics };
   }, [scene]);
 
-  // Report metrics back to parent
+  // Report metrics back to parent once per URL change
   useEffect(() => {
-    if (onModelLoaded) {
-      onModelLoaded(metrics);
+    if (reportedUrlRef.current !== url) {
+      reportedUrlRef.current = url;
+      if (onModelLoaded) {
+        onModelLoaded(metrics);
+      }
+      if (onHasPointcloudChange) {
+        onHasPointcloudChange(metrics.hasNativePointCloud);
+      }
     }
-    if (onHasPointcloudChange) {
-      onHasPointcloudChange(metrics.hasNativePointCloud);
-    }
-  }, [metrics, onModelLoaded, onHasPointcloudChange]);
+  }, [url, metrics, onModelLoaded, onHasPointcloudChange]);
 
   // Apply render mode material overrides dynamically without mutating original textures permanently
   useEffect(() => {
@@ -134,40 +138,6 @@ const GLBModelMesh: React.FC<{
   return <primitive object={clonedScene} />;
 };
 
-class LocalGLTFBoundary extends React.Component<
-  { children: React.ReactNode; fallbackUrl?: string; renderMode: 'textured' | 'wireframe' | 'solid' | 'pointcloud'; onModelLoaded?: (metrics: ModelMetrics) => void; onHasPointcloudChange?: (hasPointCloud: boolean) => void },
-  { hasError: boolean }
-> {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: any) {
-    console.warn('[Aero3D] Secondary GLB load notice:', error);
-  }
-
-  render() {
-    if (this.state.hasError && this.props.fallbackUrl) {
-      return (
-        <Suspense fallback={null}>
-          <GLBModelMesh
-            url={this.props.fallbackUrl}
-            renderMode={this.props.renderMode}
-            onModelLoaded={this.props.onModelLoaded}
-            onHasPointcloudChange={this.props.onHasPointcloudChange}
-          />
-        </Suspense>
-      );
-    }
-    return this.props.children;
-  }
-}
-
 export const BuildingModel: React.FC<BuildingModelProps> = ({
   renderMode,
   project,
@@ -177,18 +147,14 @@ export const BuildingModel: React.FC<BuildingModelProps> = ({
   const targetUrl = project?.model_url || '/demo/build.glb';
 
   return (
-    <LocalGLTFBoundary
-      fallbackUrl="/demo/build.glb"
+    <GLBModelMesh
+      url={targetUrl}
       renderMode={renderMode}
       onModelLoaded={onModelLoaded}
       onHasPointcloudChange={onHasPointcloudChange}
-    >
-      <GLBModelMesh
-        url={targetUrl}
-        renderMode={renderMode}
-        onModelLoaded={onModelLoaded}
-        onHasPointcloudChange={onHasPointcloudChange}
-      />
-    </LocalGLTFBoundary>
+    />
   );
 };
+
+// Preload static built-in demo model for instant loading
+useGLTF.preload('/demo/build.glb');

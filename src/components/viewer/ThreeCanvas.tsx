@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, Suspense } from 'react';
+import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, ContactShadows, useProgress } from '@react-three/drei';
 import * as THREE from 'three';
@@ -32,9 +32,9 @@ const LoadingOverlay: React.FC<{ projectName?: string }> = ({ projectName }) => 
       <div className="max-w-sm w-full glass-panel-elevated p-6 rounded-2xl border border-slate-700/80 space-y-4 text-center shadow-2xl">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs">
           <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
-          <span>REAL PHOTOGRAMMETRY DEMO</span>
+          <span>3D CANVAS INGESTION</span>
         </div>
-        <h3 className="text-sm font-bold tracking-wider text-slate-100 uppercase">
+        <h3 className="text-sm font-bold tracking-wider text-slate-100 uppercase truncate">
           LOADING {projectName ? projectName.toUpperCase() : '3D DIGITAL TWIN'}
         </h3>
         <div className="space-y-2">
@@ -45,7 +45,7 @@ const LoadingOverlay: React.FC<{ projectName?: string }> = ({ projectName }) => 
             />
           </div>
           <div className="flex justify-between text-xs text-slate-400">
-            <span>Loading 3D photogrammetry model...</span>
+            <span>Loading 3D model geometry...</span>
             <span className="text-sky-300 font-bold">{Math.round(progress)}%</span>
           </div>
         </div>
@@ -103,12 +103,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const [modelMetrics, setModelMetrics] = useState<ModelMetrics | null>(null);
   const [hasNativePointCloud, setHasNativePointCloud] = useState<boolean>(true);
 
-  const handleModelLoaded = (metrics: ModelMetrics) => {
+  const handleModelLoaded = useCallback((metrics: ModelMetrics) => {
     setModelMetrics(metrics);
     if (onMetricsUpdate) {
       onMetricsUpdate(metrics);
     }
-  };
+  }, [onMetricsUpdate]);
 
   // Automatic Camera Auto-Fit based on actual loaded model size
   useEffect(() => {
@@ -179,13 +179,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const targetUrl = project?.model_url || '/demo/build.glb';
 
   return (
-    <div className="w-full h-full relative bg-aerospace-950">
+    <div className="w-full h-full relative bg-aerospace-950 overflow-hidden">
       
       {/* Top Status Badge */}
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 px-3 py-1.5 rounded-lg glass-panel text-xs font-mono font-semibold border border-slate-700/80 shadow-lg">
+      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 px-3 py-1.5 rounded-lg glass-panel text-xs font-mono font-semibold border border-slate-700/80 shadow-lg select-none">
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        <span className="text-slate-200">REAL PHOTOGRAMMETRY MODEL</span>
-        <span className="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 text-[10px]">Polycam</span>
+        <span className="text-slate-200">
+          {project?.isDemo ? 'DEMO PHOTOGRAMMETRY MODEL' : 'PROCESSED 3D DIGITAL TWIN'}
+        </span>
       </div>
 
       {/* Point Cloud Unavailable Notice */}
@@ -204,9 +205,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
                 <AlertTriangle className="w-6 h-6" />
               </div>
-              <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wide">3D MODEL FAILED TO LOAD</h3>
+              <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wide">3D MODEL ASSET NOT LOADED</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Check that <code className="text-sky-300 bg-slate-900 px-1.5 py-0.5 rounded">{targetUrl}</code> exists in <code className="text-slate-300">public/demo/</code>.
+                Model binary asset <code className="text-sky-300 bg-slate-900 px-1.5 py-0.5 rounded">{targetUrl}</code> is not available or still processing.
               </p>
               <div className="flex items-center justify-center gap-3">
                 <button
