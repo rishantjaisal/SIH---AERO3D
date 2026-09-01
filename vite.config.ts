@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   publicDir: 'public',
   server: {
-    host: true, // Expose server to network (allows opening link from other laptops, phones, devices)
+    host: true,
     port: 3000,
     watch: {
       ignored: ['**/server/uploads/**', '**/storage/**', '**/backend/**', '**/public/demo/**']
@@ -40,11 +40,13 @@ export default defineConfig({
     chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
-          'vendor-leaflet': ['leaflet'],
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-icons': ['lucide-react']
+        manualChunks: (id) => {
+          if (id.includes('node_modules/three/')) return 'vendor-three-core';
+          if (id.includes('node_modules/@react-three/drei/')) return 'vendor-three-drei';
+          if (id.includes('node_modules/@react-three/fiber/')) return 'vendor-three-fiber';
+          if (id.includes('node_modules/leaflet/')) return 'vendor-leaflet';
+          if (id.includes('node_modules/lucide-react/')) return 'vendor-icons';
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router-dom/')) return 'vendor-react';
         }
       }
     }

@@ -71,6 +71,12 @@ router.get('/:id', async (req, res) => {
 router.get('/:id/model', (req, res) => {
   const projectId = req.params.id;
 
+  // Set permissive CORS and cross-origin policy headers for WebGL loaders across all devices
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Content-Type', 'model/gltf-binary');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+
   const projectStorageDir = path.join(process.cwd(), 'storage', 'projects', projectId);
   const customModelPath = path.join(projectStorageDir, 'output', 'model.glb');
   const demoBuildingPath = path.join(process.cwd(), 'public', 'demo', 'build.glb');
@@ -79,22 +85,17 @@ router.get('/:id/model', (req, res) => {
 
   // 1. If project has explicit generated/uploaded model.glb in output folder, serve it
   if (fs.existsSync(customModelPath)) {
-    res.setHeader('Content-Type', 'model/gltf-binary');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
     return res.sendFile(customModelPath);
   }
 
   // 2. Specific demo project ID routes
   if (projectId === 'demo-proj-001' && fs.existsSync(demoBuildingPath)) {
-    res.setHeader('Content-Type', 'model/gltf-binary');
     return res.sendFile(demoBuildingPath);
   }
   if (projectId === 'demo-proj-002' && fs.existsSync(tajMahalPath)) {
-    res.setHeader('Content-Type', 'model/gltf-binary');
     return res.sendFile(tajMahalPath);
   }
   if (projectId === 'demo-proj-003' && fs.existsSync(ruinedCityPath)) {
-    res.setHeader('Content-Type', 'model/gltf-binary');
     return res.sendFile(ruinedCityPath);
   }
 
@@ -109,7 +110,6 @@ router.get('/:id/model', (req, res) => {
       fallbackPath = fs.existsSync(ruinedCityPath) ? ruinedCityPath : demoBuildingPath;
     }
     if (fs.existsSync(fallbackPath)) {
-      res.setHeader('Content-Type', 'model/gltf-binary');
       return res.sendFile(fallbackPath);
     }
   }

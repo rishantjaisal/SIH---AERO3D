@@ -15,8 +15,20 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middlewares
-app.use(cors());
+// Permissive CORS middleware
+app.use(cors({ origin: '*', credentials: true }));
+
+// Global CORS & Cross-Origin Resource Sharing headers for WebGL asset streaming across all browsers & devices
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 // Webhooks raw parser comes before json parser for signature check
 app.use('/api/webhooks', webhookRoutes);
@@ -25,18 +37,29 @@ app.use('/api/webhooks', webhookRoutes);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Static options with explicit CORS and MIME headers
+const staticOptions = {
+  setHeaders: (res, filepath) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    if (filepath.endsWith('.glb')) {
+      res.setHeader('Content-Type', 'model/gltf-binary');
+    }
+  }
+};
+
 // Serve static uploads, project storage, demo assets, and frontend client build
 const uploadsPath = path.join(process.cwd(), 'server', 'uploads');
 const storagePath = path.join(process.cwd(), 'storage');
 
-app.use('/uploads', express.static(uploadsPath));
-app.use('/api/uploads', express.static(uploadsPath));
-app.use('/storage', express.static(storagePath));
-app.use('/demo', express.static(path.join(process.cwd(), 'public', 'demo')));
+app.use('/uploads', express.static(uploadsPath, staticOptions));
+app.use('/api/uploads', express.static(uploadsPath, staticOptions));
+app.use('/storage', express.static(storagePath, staticOptions));
+app.use('/demo', express.static(path.join(process.cwd(), 'public', 'demo'), staticOptions));
 
 const distPath = path.join(process.cwd(), 'dist');
 if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, staticOptions));
 }
 
 // API Routes
