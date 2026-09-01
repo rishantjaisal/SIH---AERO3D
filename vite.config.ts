@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   publicDir: 'public',
   server: {
+    host: true, // Expose server to network (allows opening link from other laptops, phones, devices)
     port: 3000,
     watch: {
       ignored: ['**/server/uploads/**', '**/storage/**', '**/backend/**', '**/public/demo/**']
