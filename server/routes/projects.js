@@ -75,6 +75,7 @@ router.get('/:id/model', (req, res) => {
   const customModelPath = path.join(projectStorageDir, 'output', 'model.glb');
   const demoBuildingPath = path.join(process.cwd(), 'public', 'demo', 'build.glb');
   const tajMahalPath = path.join(process.cwd(), 'public', 'demo', 'taj_mahal_3d_model.glb');
+  const ruinedCityPath = path.join(process.cwd(), 'public', 'demo', 'ruined_city_free_5.glb');
 
   // 1. If project has explicit generated/uploaded model.glb in output folder, serve it
   if (fs.existsSync(customModelPath)) {
@@ -83,16 +84,32 @@ router.get('/:id/model', (req, res) => {
     return res.sendFile(customModelPath);
   }
 
-  // 2. In Demo Mode (or for demo project), serve sample photogrammetry GLB fallback
+  // 2. Specific demo project ID routes
+  if (projectId === 'demo-proj-001' && fs.existsSync(demoBuildingPath)) {
+    res.setHeader('Content-Type', 'model/gltf-binary');
+    return res.sendFile(demoBuildingPath);
+  }
+  if (projectId === 'demo-proj-002' && fs.existsSync(tajMahalPath)) {
+    res.setHeader('Content-Type', 'model/gltf-binary');
+    return res.sendFile(tajMahalPath);
+  }
+  if (projectId === 'demo-proj-003' && fs.existsSync(ruinedCityPath)) {
+    res.setHeader('Content-Type', 'model/gltf-binary');
+    return res.sendFile(ruinedCityPath);
+  }
+
+  // 3. Fallback in Demo Engine Mode
   const activeEngine = (process.env.PHOTOGRAMMETRY_ENGINE || process.env.RECONSTRUCTION_ENGINE || 'demo').toLowerCase();
-  if (activeEngine === 'demo' || projectId === 'demo-proj-001') {
+  if (activeEngine === 'demo') {
     let fallbackPath = demoBuildingPath;
-    if (projectId.toLowerCase().includes('taj') || projectId.toLowerCase().includes('tj')) {
+    const pLower = projectId.toLowerCase();
+    if (pLower.includes('taj') || pLower.includes('tj')) {
       fallbackPath = fs.existsSync(tajMahalPath) ? tajMahalPath : demoBuildingPath;
+    } else if (pLower.includes('city') || pLower.includes('ruin')) {
+      fallbackPath = fs.existsSync(ruinedCityPath) ? ruinedCityPath : demoBuildingPath;
     }
     if (fs.existsSync(fallbackPath)) {
       res.setHeader('Content-Type', 'model/gltf-binary');
-      res.setHeader('Cache-Control', 'public, max-age=86400');
       return res.sendFile(fallbackPath);
     }
   }
@@ -150,10 +167,13 @@ const handleUploadRoute = async (req, res) => {
     if (!fs.existsSync(targetGlbPath) && activeEngine === 'demo') {
       const nameLower = (metadata.projectName || '').toLowerCase();
       const tajPath = path.join(process.cwd(), 'public', 'demo', 'taj_mahal_3d_model.glb');
+      const cityPath = path.join(process.cwd(), 'public', 'demo', 'ruined_city_free_5.glb');
       const demoPath = path.join(process.cwd(), 'public', 'demo', 'build.glb');
 
       if ((nameLower.includes('taj') || nameLower.includes('mahal') || nameLower.includes('tj')) && fs.existsSync(tajPath)) {
         fs.copyFileSync(tajPath, targetGlbPath);
+      } else if ((nameLower.includes('city') || nameLower.includes('ruin')) && fs.existsSync(cityPath)) {
+        fs.copyFileSync(cityPath, targetGlbPath);
       } else if (fs.existsSync(demoPath)) {
         fs.copyFileSync(demoPath, targetGlbPath);
       }
