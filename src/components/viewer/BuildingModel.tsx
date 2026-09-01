@@ -138,6 +138,38 @@ const GLBModelMesh: React.FC<{
   return <primitive object={clonedScene} />;
 };
 
+class GLBErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallbackUrl: string; renderMode: any; onModelLoaded?: any; onHasPointcloudChange?: any },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any) {
+    console.warn('[Aero3D] Custom GLB load error, switching to fallback model:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <GLBModelMesh
+          url={this.props.fallbackUrl}
+          renderMode={this.props.renderMode}
+          onModelLoaded={this.props.onModelLoaded}
+          onHasPointcloudChange={this.props.onHasPointcloudChange}
+        />
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export const BuildingModel: React.FC<BuildingModelProps> = ({
   renderMode,
   project,
@@ -147,12 +179,19 @@ export const BuildingModel: React.FC<BuildingModelProps> = ({
   const targetUrl = project?.model_url || '/demo/build.glb';
 
   return (
-    <GLBModelMesh
-      url={targetUrl}
+    <GLBErrorBoundary
+      fallbackUrl="/demo/build.glb"
       renderMode={renderMode}
       onModelLoaded={onModelLoaded}
       onHasPointcloudChange={onHasPointcloudChange}
-    />
+    >
+      <GLBModelMesh
+        url={targetUrl}
+        renderMode={renderMode}
+        onModelLoaded={onModelLoaded}
+        onHasPointcloudChange={onHasPointcloudChange}
+      />
+    </GLBErrorBoundary>
   );
 };
 
