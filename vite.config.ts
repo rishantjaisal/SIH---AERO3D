@@ -5,6 +5,9 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   publicDir: 'public',
+  esbuild: {
+    exclude: ['server/**', 'storage/**', 'public/demo/**', '**/server/uploads/**']
+  },
   server: {
     host: true,
     port: 3000,
@@ -36,17 +39,15 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
-    copyPublicDir: true, // MUST be true so Netlify deployment includes static demo GLB models in dist/
-    chunkSizeWarningLimit: 2000,
+    copyPublicDir: false,
+    chunkSizeWarningLimit: 3000,
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          if (id.includes('node_modules/three/')) return 'vendor-three-core';
-          if (id.includes('node_modules/@react-three/drei/')) return 'vendor-three-drei';
-          if (id.includes('node_modules/@react-three/fiber/')) return 'vendor-three-fiber';
-          if (id.includes('node_modules/leaflet/')) return 'vendor-leaflet';
-          if (id.includes('node_modules/lucide-react/')) return 'vendor-icons';
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router-dom/')) return 'vendor-react';
+        manualChunks: {
+          'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
+          'vendor-leaflet': ['leaflet'],
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-icons': ['lucide-react']
         }
       }
     }

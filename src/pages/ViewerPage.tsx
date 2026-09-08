@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -6,43 +6,24 @@ import {
   MapPin,
   X,
   ArrowLeft,
-  Scale
+  Scale,
+  AlertCircle,
+  Play,
+  FileQuestion
 } from 'lucide-react';
 import { ThreeCanvas } from '../components/viewer/ThreeCanvas';
 import { FloatingToolbar, ActiveTool, RenderMode, CameraPreset } from '../components/viewer/FloatingToolbar';
 import { ModelInfoPanel } from '../components/viewer/ModelInfoPanel';
 import { ModelMetrics } from '../components/viewer/BuildingModel';
 import { useProjects } from '../store/ProjectContext';
-import { Project } from '../types';
-
-const DEFAULT_FALLBACK_PROJECT: Project = {
-  id: 'demo-proj-001',
-  name: 'KIET Campus Building Survey',
-  status: 'SUCCEEDED',
-  provider: 'demo',
-  created_at: new Date().toISOString(),
-  model_url: '/demo/build.glb',
-  thumbnail_url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="150" y="120" width="300" height="180" rx="6" fill="%231e293b" stroke="%2338bdf8" stroke-width="2"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">KIET CAMPUS DIGITAL TWIN</text></svg>',
-  isDemo: true,
-  metadata: {
-    locationName: 'Delhi NCR, India',
-    gps: { latitude: 28.7523, longitude: 77.4988 },
-    gsd: '1.2 cm/px',
-    surveyDate: '2026-08-28',
-    droneModel: 'DJI Mavic 3 Enterprise RTK',
-    cameraModel: '20MP Micro 4/3 CMOS',
-    flightAltitude: '45 m',
-    weather: 'Clear',
-    operator: 'Aero3D Flight Lead'
-  }
-};
+import { api } from '../services/api';
 
 export const ViewerPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const {
     projects,
-    activeProject,
+    setActiveProject,
     markers,
     addMarker,
     measurements,
@@ -53,7 +34,15 @@ export const ViewerPage: React.FC = () => {
     isCalibrated
   } = useProjects();
 
-  const currentProj = (projects || []).find(p => p && p.id === projectId) || activeProject || DEFAULT_FALLBACK_PROJECT;
+  // Find target project strictly by URL route parameter
+  const currentProj = (projects || []).find(p => p && p.id === projectId);
+
+  // Sync active project state when project is found
+  useEffect(() => {
+    if (currentProj) {
+      setActiveProject(currentProj);
+    }
+  }, [currentProj, setActiveProject]);
 
   // Viewer state
   const [activeTool, setActiveTool] = useState<ActiveTool>('orbit');
@@ -63,6 +52,16 @@ export const ViewerPage: React.FC = () => {
   const [showInfoPanel, setShowInfoPanel] = useState<boolean>(true);
   const [showCalibrationModal, setShowCalibrationModal] = useState<boolean>(false);
   const [loadedMetrics, setLoadedMetrics] = useState<ModelMetrics | null>(null);
+
+  // Reset viewer state when projectId changes
+  useEffect(() => {
+    setActiveTool('orbit');
+    setRenderMode('textured');
+    setShowGrid(true);
+    setCameraPreset('default');
+    setLoadedMetrics(null);
+    clearMeasurements();
+  }, [projectId, clearMeasurements]);
 
   // Pin marker creation dialog state
   const [pendingMarkerPoint, setPendingMarkerPoint] = useState<[number, number, number] | null>(null);
@@ -78,6 +77,108 @@ export const ViewerPage: React.FC = () => {
     knownDistance: '10',
     measuredDistance: '10'
   });
+
+  // Debug logging
+  useEffect(() => {
+    if (currentProj) {
+      console.log('[Aero3D Viewer]', {
+        projectId: currentProj.id,
+        projectName: currentProj.name,
+        modelUrl: currentProj.model_url,
+        status: currentProj.status,
+        isDemo: currentProj.isDemo
+      });
+    }
+  }, [currentProj]);
+
+  // Case 1: Project not found in projects array
+  if (!currentProj) {
+    return (
+      <div className="flex flex-col h-screen bg-aerospace-950 text-slate-100 items-center justify-center p-6 font-mono select-none">
+        <div className="max-w-md w-full glass-panel-elevated p-8 rounded-2xl border border-slate-700/80 text-center space-y-4 shadow-2xl">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+            <FileQuestion className="w-7 h-7" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-100">Project Not Found</h2>
+          <p className="text-xs text-slate-400 leading-relaxed font-sans">
+            No survey project exists with ID <code className="text-sky-300 font-mono bg-slate-900 px-2 py-0.5 rounded">{projectId}</code>.
+          </p>
+          <div className="pt-2">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-aerospace-950 font-bold text-xs shadow-lg transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Dashboard</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Case 2: Project has no 3D model URL or is still processing/queued
+  if (!currentProj.model_url || currentProj.status === 'QUEUED' || currentProj.status === 'PROCESSING') {
+    return (
+      <div className="flex flex-col h-screen bg-aerospace-950 text-slate-100 font-sans">
+        <header className="h-14 bg-aerospace-900 border-b border-slate-800 px-4 flex items-center justify-between z-40 shrink-0">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="p-1.5 rounded-lg bg-aerospace-950 text-slate-400 hover:text-slate-200 border border-slate-800 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div>
+              <h1 className="font-bold text-sm text-slate-100 font-mono">{currentProj.name}</h1>
+              <p className="text-[10px] text-slate-400">ID: {currentProj.id}</p>
+            </div>
+          </div>
+        </header>
+
+        <div className="flex-1 flex items-center justify-center p-6 font-mono">
+          <div className="max-w-md w-full glass-panel-elevated p-8 rounded-2xl border border-sky-500/30 text-center space-y-5 shadow-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center mx-auto">
+              <AlertCircle className="w-7 h-7" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-100">3D Model Unavailable</h2>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans mt-1">
+                This project has not generated a 3D digital twin model yet.
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-aerospace-950 border border-slate-800 text-xs text-left space-y-1 font-mono">
+              <div className="text-slate-400">Status: <span className="text-amber-400 font-bold">{currentProj.status}</span></div>
+              <div className="text-slate-400">Source Type: <span className="text-slate-200">{currentProj.source_type || currentProj.inputType || 'photos'}</span></div>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition-all"
+              >
+                Back to Dashboard
+              </button>
+              <button
+                onClick={() => {
+                  api.processProject(currentProj.id).catch(() => {});
+                  navigate(`/processing/${currentProj.id}`);
+                }}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-aerospace-950 font-bold text-xs shadow-lg transition-all"
+              >
+                <Play className="w-4 h-4 fill-current" />
+                <span>Start Processing</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Case 3: Valid model_url exists for this project
+  const isDemoProject = currentProj.isDemo || currentProj.source_type === 'demo';
 
   const handleAddMarkerAtPoint = (point: [number, number, number]) => {
     setPendingMarkerPoint(point);
@@ -114,13 +215,11 @@ export const ViewerPage: React.FC = () => {
     const canvas = document.querySelector('canvas');
     if (canvas) {
       const link = document.createElement('a');
-      link.download = 'Aero3D-Photogrammetry-Snapshot.png';
+      link.download = `Aero3D-${currentProj.id}-Snapshot.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     }
   };
-
-  const isDemoProject = currentProj.isDemo || currentProj.provider === 'demo' || currentProj.id === 'demo-proj-001';
 
   return (
     <div className="flex flex-col h-screen bg-aerospace-950 text-slate-100 overflow-hidden font-sans select-none">
@@ -143,7 +242,7 @@ export const ViewerPage: React.FC = () => {
               <span className={`px-2 py-0.5 rounded text-[10px] font-mono border ${
                 isDemoProject ? 'bg-sky-500/20 text-sky-300 border-sky-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
               }`}>
-                {isDemoProject ? 'DEMO MODE — REAL PHOTOGRAMMETRY SAMPLE' : '3D DIGITAL TWIN MODEL'}
+                {isDemoProject ? 'DEMO SAMPLE MODEL' : 'PROCESSED 3D DIGITAL TWIN'}
               </span>
             </div>
             <p className="text-[10px] text-slate-400 font-sans">
@@ -201,20 +300,22 @@ export const ViewerPage: React.FC = () => {
           measurementCount={measurements.length}
         />
 
-        {/* 3D WebGL Canvas */}
+        {/* 3D WebGL Canvas Keyed strictly by projectId & model_url */}
         <div className="flex-1 h-full relative">
           <ThreeCanvas
+            key={`${currentProj.id}-${currentProj.model_url}`}
             activeTool={activeTool}
             renderMode={renderMode}
             showGrid={showGrid}
             cameraPreset={cameraPreset}
-            markers={markers}
+            markers={markers.filter(m => m.projectId === currentProj.id)}
             onAddMarkerAtPoint={handleAddMarkerAtPoint}
-            measurements={measurements}
+            measurements={measurements.filter(m => m.projectId === currentProj.id)}
             onAddMeasurement={addMeasurement}
             scaleFactor={scaleFactor}
             isCalibrated={isCalibrated}
             projectId={currentProj.id}
+            modelUrl={currentProj.model_url}
             project={currentProj}
             onMetricsUpdate={setLoadedMetrics}
           />

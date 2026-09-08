@@ -13,6 +13,7 @@ import { Sidebar } from '../components/layout/Sidebar';
 import { Topbar } from '../components/layout/Topbar';
 import { useProjects } from '../store/ProjectContext';
 import { api } from '../services/api';
+import { Project } from '../types';
 
 export const NewSurvey: React.FC = () => {
   const navigate = useNavigate();
@@ -101,32 +102,74 @@ export const NewSurvey: React.FC = () => {
     setLoading(true);
     setValidationError('');
 
+    // Generate unambiguous unique project ID
+    const newProjectId = `aero-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+
+    const glbFile = selectedFiles.find(f => f.name.endsWith('.glb') || f.name.endsWith('.gltf'));
+    const videoFile = selectedFiles.find(f => ['.mp4', '.mov', '.mkv'].includes('.' + f.name.split('.').pop()?.toLowerCase()));
+
+    const isGlbDirect = !!glbFile;
+    const isVideo = !!videoFile;
+
+    // Create client blob URL for direct GLB uploads so viewer works instantly on Netlify & local without backend
+    const modelBlobUrl = isGlbDirect ? URL.createObjectURL(glbFile) : `/api/projects/${newProjectId}/model`;
+
+    const gpsLat = parseFloat(formData.latitude);
+    const gpsLng = parseFloat(formData.longitude);
+    const hasGps = !isNaN(gpsLat) && !isNaN(gpsLng);
+
+    const clientProject: Project = {
+      id: newProjectId,
+      name: formData.projectName || (isGlbDirect ? `3D Model: ${glbFile.name}` : isVideo ? 'Drone Flight Video Survey' : 'Drone Photogrammetry Survey'),
+      status: isGlbDirect ? 'SUCCEEDED' : 'QUEUED',
+      provider: (providerStatus?.mode as any) || 'demo',
+      created_at: new Date().toISOString(),
+      model_url: isGlbDirect ? modelBlobUrl : undefined, // ONLY set model_url if actual 3D model exists!
+      thumbnail_url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="150" y="120" width="300" height="180" rx="6" fill="%231e293b" stroke="%2338bdf8" stroke-width="2"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="14" font-weight="bold">DRONE SURVEY DIGITAL TWIN</text></svg>',
+      isDemo: false,
+      source_type: isGlbDirect ? 'glb' : isVideo ? 'video' : 'photos',
+      inputType: isGlbDirect ? 'model' : isVideo ? 'video' : 'photos',
+      inputFile: selectedFiles[0]?.name,
+      metadata: {
+        locationName: formData.location || '',
+        gps: hasGps ? { latitude: gpsLat, longitude: gpsLng } : null,
+        gsd: formData.gsd || '',
+        surveyDate: formData.surveyDate || new Date().toISOString().split('T')[0],
+        droneModel: formData.droneModel || '',
+        cameraModel: formData.cameraModel || '',
+        flightAltitude: formData.flightAltitude || '',
+        weather: formData.weather || '',
+        operator: formData.operator || ''
+      }
+    };
+
+    // Save project in React Context & LocalStorage immediately
+    addProject(clientProject);
+    setActiveProject(clientProject);
+
     try {
       const formPayload = new FormData();
+      formPayload.append('projectId', newProjectId);
       selectedFiles.forEach(file => formPayload.append('files', file));
       Object.entries(formData).forEach(([key, val]) => formPayload.append(key, val));
 
-      const response = await api.createSurvey(formPayload);
+      // Attempt backend upload if API server is available
+      const response = await api.createSurvey(formPayload).catch(() => null);
       if (response && response.project) {
-        const proj = response.project;
-        addProject(proj);
-        setActiveProject(proj);
-
-        // If GLB 3D model uploaded directly, navigate directly to viewer
-        if (proj.inputType === 'model' || selectedFiles.some(f => f.name.endsWith('.glb') || f.name.endsWith('.gltf'))) {
-          navigate(`/viewer/${proj.id}`);
-        } else {
-          // Trigger asynchronous photogrammetry pipeline job
-          api.processProject(proj.id).catch(() => {});
-          navigate(`/processing/${proj.id}`);
-        }
-      } else {
-        throw new Error('Project creation failed on backend server.');
+        addProject(response.project);
+        setActiveProject(response.project);
       }
-    } catch (err: any) {
-      setValidationError(err.message || 'Failed to upload and create survey project.');
+    } catch (_err) {
+      console.warn('[Aero3D Survey] Backend upload skipped/offline, using client project record.');
     } finally {
       setLoading(false);
+      if (isGlbDirect) {
+        navigate(`/viewer/${newProjectId}`);
+      } else {
+        // Trigger background processing pipeline
+        api.processProject(newProjectId).catch(() => {});
+        navigate(`/processing/${newProjectId}`);
+      }
     }
   };
 

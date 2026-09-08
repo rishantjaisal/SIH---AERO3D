@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Project, InspectionMarker, Measurement3D, SystemHealth } from '../types';
 import { api } from '../services/api';
 
+const LOCAL_STORAGE_KEY = 'aero3d_projects';
+
 const SVG_THUMBNAILS = {
   academic: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="150" y="120" width="300" height="180" rx="6" fill="%231e293b" stroke="%2338bdf8" stroke-width="2"/><rect x="180" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="240" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="300" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="360" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><polygon points="250,120 300,70 350,120" fill="%230284c7"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">KIET CAMPUS DIGITAL TWIN</text></svg>`,
   taj: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="180" y="100" width="240" height="200" rx="8" fill="%230284c7" opacity="0.3" stroke="%2338bdf8" stroke-width="2"/><polygon points="300,40 220,100 380,100" fill="%2338bdf8" opacity="0.6"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">TAJ MAHAL DIGITAL TWIN</text></svg>`,
@@ -14,10 +16,11 @@ const DEFAULT_PROJECTS: Project[] = [
     name: 'KIET Campus Building Survey',
     status: 'SUCCEEDED',
     provider: 'demo',
-    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+    created_at: '2026-08-28T10:00:00.000Z',
     model_url: '/demo/build.glb',
     thumbnail_url: SVG_THUMBNAILS.academic,
     isDemo: true,
+    source_type: 'demo',
     reconstructionEngine: 'demo',
     metadata: {
       locationName: 'Delhi NCR, India',
@@ -37,10 +40,11 @@ const DEFAULT_PROJECTS: Project[] = [
     name: 'Taj Mahal 3D Digital Twin Survey',
     status: 'SUCCEEDED',
     provider: 'demo',
-    created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+    created_at: '2026-08-25T10:00:00.000Z',
     model_url: '/demo/taj_mahal_3d_model.glb',
     thumbnail_url: SVG_THUMBNAILS.taj,
     isDemo: true,
+    source_type: 'demo',
     reconstructionEngine: 'demo',
     metadata: {
       locationName: 'Agra, Uttar Pradesh, India',
@@ -60,10 +64,11 @@ const DEFAULT_PROJECTS: Project[] = [
     name: 'Smart Ruined City Urban Survey',
     status: 'SUCCEEDED',
     provider: 'demo',
-    created_at: new Date(Date.now() - 86400000 * 8).toISOString(),
+    created_at: '2026-08-20T10:00:00.000Z',
     model_url: '/demo/ruined_city_free_5.glb',
     thumbnail_url: SVG_THUMBNAILS.city,
     isDemo: true,
+    source_type: 'demo',
     reconstructionEngine: 'demo',
     metadata: {
       locationName: 'Urban Heritage Site',
@@ -94,6 +99,21 @@ const INITIAL_MARKERS: InspectionMarker[] = [
   }
 ];
 
+function loadSavedProjects(): Project[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('[Aero3D Storage] Failed to load projects from localStorage:', err);
+  }
+  return DEFAULT_PROJECTS;
+}
+
 interface ProjectContextType {
   projects: Project[];
   activeProject: Project;
@@ -111,13 +131,15 @@ interface ProjectContextType {
   health: SystemHealth | null;
   refreshData: () => Promise<void>;
   addProject: (newProject: Project) => void;
+  updateProject: (id: string, updates: Partial<Project>) => void;
+  getProjectById: (id: string) => Project | undefined;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
 export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [projects, setProjects] = useState<Project[]>(DEFAULT_PROJECTS);
-  const [activeProject, setActiveProject] = useState<Project>(DEFAULT_PROJECTS[0]);
+  const [projects, setProjects] = useState<Project[]>(loadSavedProjects);
+  const [activeProject, setActiveProject] = useState<Project>(() => projects[0] || DEFAULT_PROJECTS[0]);
   const [markers, setMarkers] = useState<InspectionMarker[]>(INITIAL_MARKERS);
   const [measurements, setMeasurements] = useState<Measurement3D[]>([]);
   const [scaleFactor, setScaleFactor] = useState<number>(1.0);
@@ -130,6 +152,15 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   });
   const [health, setHealth] = useState<SystemHealth | null>(null);
 
+  // Sync projects state to localStorage whenever modified
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(projects));
+    } catch (err) {
+      console.warn('[Aero3D Storage] Failed to save projects to localStorage:', err);
+    }
+  }, [projects]);
+
   const refreshData = async () => {
     try {
       const pStatus = await api.getProviderStatus();
@@ -140,14 +171,27 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       const backendProjects = await api.getProjects();
       if (backendProjects && backendProjects.length > 0) {
-        setProjects(backendProjects);
-        setActiveProject(prev => {
-          const match = backendProjects.find(p => p.id === prev?.id);
-          return match || backendProjects[0];
+        setProjects(prev => {
+          // Merge backend projects with local projects without overwriting custom local model_urls
+          const merged = [...prev];
+          backendProjects.forEach(bp => {
+            const idx = merged.findIndex(p => p.id === bp.id);
+            if (idx >= 0) {
+              merged[idx] = {
+                ...merged[idx],
+                ...bp,
+                // Keep local model_url if backend returned empty or default
+                model_url: bp.model_url || merged[idx].model_url
+              };
+            } else {
+              merged.push(bp);
+            }
+          });
+          return merged;
         });
       }
     } catch (err) {
-      console.warn('Backend API refresh notice: Using local state');
+      console.warn('[Aero3D API] Backend offline notice: Using local state');
     }
   };
 
@@ -189,9 +233,23 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const addProject = (newProject: Project) => {
     setProjects(prev => {
       const exists = prev.some(p => p.id === newProject.id);
-      return exists ? prev.map(p => p.id === newProject.id ? newProject : p) : [newProject, ...prev];
+      if (exists) {
+        return prev.map(p => p.id === newProject.id ? { ...p, ...newProject } : p);
+      }
+      return [newProject, ...prev];
     });
     setActiveProject(newProject);
+  };
+
+  const updateProject = (id: string, updates: Partial<Project>) => {
+    setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p));
+    if (activeProject.id === id) {
+      setActiveProject(prev => ({ ...prev, ...updates }));
+    }
+  };
+
+  const getProjectById = (id: string): Project | undefined => {
+    return projects.find(p => p.id === id);
   };
 
   return (
@@ -212,7 +270,9 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         providerStatus,
         health,
         refreshData,
-        addProject
+        addProject,
+        updateProject,
+        getProjectById
       }}
     >
       {children}

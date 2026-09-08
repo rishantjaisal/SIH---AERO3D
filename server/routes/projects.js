@@ -99,28 +99,14 @@ router.get('/:id/model', (req, res) => {
     return res.sendFile(ruinedCityPath);
   }
 
-  // 3. Fallback in Demo Engine Mode
-  const activeEngine = (process.env.PHOTOGRAMMETRY_ENGINE || process.env.RECONSTRUCTION_ENGINE || 'demo').toLowerCase();
-  if (activeEngine === 'demo') {
-    let fallbackPath = demoBuildingPath;
-    const pLower = projectId.toLowerCase();
-    if (pLower.includes('taj') || pLower.includes('tj')) {
-      fallbackPath = fs.existsSync(tajMahalPath) ? tajMahalPath : demoBuildingPath;
-    } else if (pLower.includes('city') || pLower.includes('ruin')) {
-      fallbackPath = fs.existsSync(ruinedCityPath) ? ruinedCityPath : demoBuildingPath;
-    }
-    if (fs.existsSync(fallbackPath)) {
-      return res.sendFile(fallbackPath);
-    }
-  }
-
-  res.status(404).json({ error: true, message: 'Model binary output asset not found for this project.' });
+  // 3. For any other real project with no output model.glb, return 404. DO NOT copy/serve fake fallback build.glb!
+  res.status(404).json({ error: true, message: `3D model binary output asset not found for project ${projectId}.` });
 });
 
 // POST /api/projects/upload & /api/projects/:projectId/upload
 const handleUploadRoute = async (req, res) => {
   try {
-    const projectId = req.params.projectId || `proj-${Date.now()}`;
+    const projectId = req.body.projectId || req.params.projectId || `aero-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const metadata = req.body || {};
     const files = req.files || [];
 
@@ -161,24 +147,6 @@ const handleUploadRoute = async (req, res) => {
     const isGlbModel = !!uploadedGlbFile;
     const isVideo = !!primaryVideoFile;
 
-    // In Demo Engine Mode, copy demo build.glb as output if no GLB was uploaded
-    const activeEngine = (process.env.PHOTOGRAMMETRY_ENGINE || process.env.RECONSTRUCTION_ENGINE || 'demo').toLowerCase();
-    const targetGlbPath = path.join(outputDir, 'model.glb');
-    if (!fs.existsSync(targetGlbPath) && activeEngine === 'demo') {
-      const nameLower = (metadata.projectName || '').toLowerCase();
-      const tajPath = path.join(process.cwd(), 'public', 'demo', 'taj_mahal_3d_model.glb');
-      const cityPath = path.join(process.cwd(), 'public', 'demo', 'ruined_city_free_5.glb');
-      const demoPath = path.join(process.cwd(), 'public', 'demo', 'build.glb');
-
-      if ((nameLower.includes('taj') || nameLower.includes('mahal') || nameLower.includes('tj')) && fs.existsSync(tajPath)) {
-        fs.copyFileSync(tajPath, targetGlbPath);
-      } else if ((nameLower.includes('city') || nameLower.includes('ruin')) && fs.existsSync(cityPath)) {
-        fs.copyFileSync(cityPath, targetGlbPath);
-      } else if (fs.existsSync(demoPath)) {
-        fs.copyFileSync(demoPath, targetGlbPath);
-      }
-    }
-
     const gpsLat = parseFloat(metadata.latitude);
     const gpsLng = parseFloat(metadata.longitude);
     const hasGps = !isNaN(gpsLat) && !isNaN(gpsLng);
@@ -197,13 +165,13 @@ const handleUploadRoute = async (req, res) => {
       flightAltitude: metadata.flightAltitude || '',
       weather: metadata.weather || '',
       operator: metadata.operator || '',
-      model_url: `/api/projects/${projectId}/model`,
+      model_url: isGlbModel ? `/api/projects/${projectId}/model` : undefined,
       fileCount: files.length,
-      status: isGlbModel || activeEngine === 'demo' ? 'SUCCEEDED' : 'QUEUED'
+      status: isGlbModel ? 'SUCCEEDED' : 'QUEUED'
     });
 
     newProject.id = projectId;
-    newProject.status = isGlbModel || activeEngine === 'demo' ? 'SUCCEEDED' : 'QUEUED';
+    newProject.status = isGlbModel ? 'SUCCEEDED' : 'QUEUED';
     newProject.inputType = isGlbModel ? 'model' : isVideo ? 'video' : 'photos';
     newProject.inputFile = uploadedGlbFile?.originalname || primaryVideoFile || files[0]?.originalname;
     newProject.metadata.gps = hasGps ? { latitude: gpsLat, longitude: gpsLng } : null;
@@ -363,17 +331,9 @@ router.post('/:id/process', async (req, res) => {
         message: 'Exporting 3D GLB model output...'
       });
 
-      // In Demo Mode, copy demo build.glb as output if no GLB exists
-      const targetGlb = path.join(outputDir, 'model.glb');
-      if (!fs.existsSync(targetGlb) && activeEngine === 'demo') {
-        const demoGlb = path.join(process.cwd(), 'public', 'demo', 'build.glb');
-        if (fs.existsSync(demoGlb)) {
-          fs.copyFileSync(demoGlb, targetGlb);
-        }
-      }
-
       await new Promise(r => setTimeout(r, 800));
 
+      const targetGlb = path.join(outputDir, 'model.glb');
       const finalGlbExists = fs.existsSync(targetGlb);
       if (!finalGlbExists && activeEngine !== 'demo') {
         jobManager.failJob(
@@ -389,15 +349,10 @@ router.post('/:id/process', async (req, res) => {
       jobManager.updateJob(job.id, {
         status: 'completed',
         stage: 'COMPLETED',
-        stageLabel: activeEngine === 'demo' ? 'DEMO MODE - Sample Photogrammetry Model Ready' : '3D Reconstruction Completed',
+        stageLabel: '3D Reconstruction Completed',
         progress: 100,
-        message: activeEngine === 'demo'
-          ? 'DEMO MODE: Loaded sample photogrammetry model (public/demo/build.glb).'
-          : '3D GLB Digital Twin ready for inspection.',
-        qualityMetrics: activeEngine === 'demo' ? {
-          isDemoSample: true,
-          note: 'Metrics derived from loaded sample GLB model.'
-        } : {
+        message: '3D GLB Digital Twin ready for inspection.',
+        qualityMetrics: {
           inputImages: frameCount,
           registeredImages: Math.round(frameCount * 0.9),
           sparsePoints: frameCount * 400

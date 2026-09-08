@@ -16,6 +16,7 @@ export interface ModelMetrics {
 
 interface BuildingModelProps {
   renderMode: 'textured' | 'wireframe' | 'solid' | 'pointcloud';
+  modelUrl: string;
   project?: Project;
   onModelLoaded?: (metrics: ModelMetrics) => void;
   onHasPointcloudChange?: (hasPointCloud: boolean) => void;
@@ -102,7 +103,28 @@ const GLBModelMesh: React.FC<{
     }
   }, [url, metrics, onModelLoaded, onHasPointcloudChange]);
 
-  // Apply render mode material overrides dynamically without mutating original textures permanently
+  // Clean up Three.js cloned geometry & materials when component unmounts or modelUrl changes
+  useEffect(() => {
+    return () => {
+      clonedScene.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          if (mesh.geometry) {
+            mesh.geometry.dispose();
+          }
+          if (mesh.material) {
+            if (Array.isArray(mesh.material)) {
+              mesh.material.forEach(m => m.dispose());
+            } else {
+              mesh.material.dispose();
+            }
+          }
+        }
+      });
+    };
+  }, [clonedScene]);
+
+  // Apply render mode material overrides dynamically
   useEffect(() => {
     clonedScene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
@@ -138,62 +160,25 @@ const GLBModelMesh: React.FC<{
   return <primitive object={clonedScene} />;
 };
 
-class GLBErrorBoundary extends React.Component<
-  { children: React.ReactNode; fallbackUrl: string; renderMode: any; onModelLoaded?: any; onHasPointcloudChange?: any },
-  { hasError: boolean }
-> {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: any) {
-    console.warn('[Aero3D] Custom GLB load error, switching to fallback model:', error);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <GLBModelMesh
-          url={this.props.fallbackUrl}
-          renderMode={this.props.renderMode}
-          onModelLoaded={this.props.onModelLoaded}
-          onHasPointcloudChange={this.props.onHasPointcloudChange}
-        />
-      );
-    }
-    return this.props.children;
-  }
-}
-
 export const BuildingModel: React.FC<BuildingModelProps> = ({
   renderMode,
-  project,
+  modelUrl,
   onModelLoaded,
   onHasPointcloudChange
 }) => {
-  const targetUrl = project?.model_url || '/demo/build.glb';
+  console.log('[Aero3D BuildingModel]', { modelUrl });
+
+  if (!modelUrl) {
+    throw new Error('This project does not have a 3D model asset specified.');
+  }
 
   return (
-    <GLBErrorBoundary
-      fallbackUrl="/demo/build.glb"
+    <GLBModelMesh
+      key={modelUrl}
+      url={modelUrl}
       renderMode={renderMode}
       onModelLoaded={onModelLoaded}
       onHasPointcloudChange={onHasPointcloudChange}
-    >
-      <GLBModelMesh
-        url={targetUrl}
-        renderMode={renderMode}
-        onModelLoaded={onModelLoaded}
-        onHasPointcloudChange={onHasPointcloudChange}
-      />
-    </GLBErrorBoundary>
+    />
   );
 };
-
-// Preload static built-in demo model for instant loading
-useGLTF.preload('/demo/build.glb');

@@ -7,7 +7,8 @@ import { InspectionMarkers } from './InspectionMarkers';
 import { MeasurementTool } from './MeasurementTool';
 import { ActiveTool, RenderMode, CameraPreset } from './FloatingToolbar';
 import { InspectionMarker, Measurement3D, Project } from '../../types';
-import { AlertTriangle, RefreshCw, EyeOff } from 'lucide-react';
+import { AlertTriangle, RefreshCw, EyeOff, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface ThreeCanvasProps {
   activeTool: ActiveTool;
@@ -21,6 +22,7 @@ interface ThreeCanvasProps {
   scaleFactor: number;
   isCalibrated: boolean;
   projectId: string;
+  modelUrl: string;
   project?: Project;
   onMetricsUpdate?: (metrics: ModelMetrics) => void;
 }
@@ -55,7 +57,7 @@ const LoadingOverlay: React.FC<{ projectName?: string }> = ({ projectName }) => 
 };
 
 class GLTFErrorBoundary extends React.Component<
-  { children: React.ReactNode; projectUrl: string; fallback: (error: Error, reset: () => void) => React.ReactNode },
+  { children: React.ReactNode; modelUrl: string; fallback: (error: Error, reset: () => void) => React.ReactNode },
   { hasError: boolean; error: Error | null }
 > {
   constructor(props: any) {
@@ -68,7 +70,7 @@ class GLTFErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    console.error('[Aero3D 3D Viewer] GLTF Load Error:', error, errorInfo);
+    console.error('[Aero3D 3D Viewer] Model Load Error for URL:', this.props.modelUrl, error, errorInfo);
   }
 
   reset = () => {
@@ -95,13 +97,17 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   scaleFactor,
   isCalibrated,
   projectId,
+  modelUrl,
   project,
   onMetricsUpdate
 }) => {
+  const navigate = useNavigate();
   const controlsRef = useRef<any>(null);
   const [activePoints, setActivePoints] = useState<Array<[number, number, number]>>([]);
   const [modelMetrics, setModelMetrics] = useState<ModelMetrics | null>(null);
   const [hasNativePointCloud, setHasNativePointCloud] = useState<boolean>(true);
+
+  console.log('[Aero3D ThreeCanvas]', { projectId, modelUrl });
 
   const handleModelLoaded = useCallback((metrics: ModelMetrics) => {
     setModelMetrics(metrics);
@@ -109,6 +115,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       onMetricsUpdate(metrics);
     }
   }, [onMetricsUpdate]);
+
+  // Reset measurements active points & model metrics when projectId or modelUrl changes
+  useEffect(() => {
+    setActivePoints([]);
+    setModelMetrics(null);
+  }, [projectId, modelUrl]);
 
   // Automatic Camera Auto-Fit based on actual loaded model size
   useEffect(() => {
@@ -176,7 +188,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   };
 
   const gridScale = modelMetrics ? Math.max(80, modelMetrics.maxDimension * 3) : 100;
-  const targetUrl = project?.model_url || '/demo/build.glb';
 
   return (
     <div className="w-full h-full relative bg-aerospace-950 overflow-hidden">
@@ -184,8 +195,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       {/* Top Status Badge */}
       <div className="absolute top-4 left-4 z-20 flex items-center gap-2 px-3 py-1.5 rounded-lg glass-panel text-xs font-mono font-semibold border border-slate-700/80 shadow-lg select-none">
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        <span className="text-slate-200">
-          {project?.isDemo ? 'DEMO PHOTOGRAMMETRY MODEL' : 'PROCESSED 3D DIGITAL TWIN'}
+        <span className="text-slate-200 truncate max-w-xs">
+          {project?.isDemo ? `DEMO MODEL: ${project.name}` : `3D DIGITAL TWIN: ${project?.name || projectId}`}
         </span>
       </div>
 
@@ -198,18 +209,29 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       )}
 
       <GLTFErrorBoundary
-        projectUrl={targetUrl}
-        fallback={(_error, reset) => (
+        key={`${projectId}-${modelUrl}`}
+        modelUrl={modelUrl}
+        fallback={(error, reset) => (
           <div className="absolute inset-0 z-30 bg-aerospace-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center select-none font-mono">
             <div className="max-w-md w-full glass-panel-elevated p-6 rounded-2xl border border-rose-500/40 space-y-4 shadow-2xl">
               <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
                 <AlertTriangle className="w-6 h-6" />
               </div>
-              <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wide">3D MODEL ASSET NOT LOADED</h3>
+              <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wide">3D MODEL ASSET NOT FOUND</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Model binary asset <code className="text-sky-300 bg-slate-900 px-1.5 py-0.5 rounded">{targetUrl}</code> is not available or still processing.
+                The 3D model asset for project <span className="text-sky-300 font-bold">{project?.name || projectId}</span> could not be loaded at <code className="text-sky-300 bg-slate-900 px-1.5 py-0.5 rounded break-all">{modelUrl}</code>.
               </p>
-              <div className="flex items-center justify-center gap-3">
+              <div className="text-[11px] text-slate-500 leading-normal">
+                {error.message || 'The model asset is not available on this server.'}
+              </div>
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition-all"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back to Dashboard</span>
+                </button>
                 <button
                   onClick={() => {
                     reset();
@@ -218,7 +240,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-aerospace-950 font-bold text-xs shadow-lg transition-all"
                 >
                   <RefreshCw className="w-4 h-4" />
-                  <span>Retry Loading Model</span>
+                  <span>Retry Loading</span>
                 </button>
               </div>
             </div>
@@ -227,6 +249,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       >
         <Suspense fallback={<LoadingOverlay projectName={project?.name} />}>
           <Canvas
+            key={`${projectId}-${modelUrl}`}
             shadows
             gl={{ preserveDrawingBuffer: true, antialias: true, powerPreference: 'high-performance' }}
             camera={{ position: [25, 20, 25], fov: 45 }}
@@ -276,7 +299,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
             {/* 3D Digital Twin Mesh Model */}
             <BuildingModel
+              key={`${projectId}-${modelUrl}`}
               renderMode={renderMode}
+              modelUrl={modelUrl}
               project={project}
               onModelLoaded={handleModelLoaded}
               onHasPointcloudChange={setHasNativePointCloud}

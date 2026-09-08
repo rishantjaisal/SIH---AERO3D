@@ -33,15 +33,18 @@ export interface ProjectMetadata {
 }
 
 export interface Project {
-  id: string;
+  id: string; // Unique project ID (e.g. aero-8f2c..., demo-proj-001)
   name: string;
   status: ProjectStatus;
   provider: ProviderType;
   created_at: string;
-  model_url: string;
+  updated_at?: string;
+  model_url?: string; // Independent 3D model asset URL for THIS project only
   thumbnail_url: string;
   metadata: ProjectMetadata;
   isDemo?: boolean;
+  source_type?: 'video' | 'photos' | 'glb' | 'demo';
+  source_url?: string;
   inputType?: 'video' | 'photos' | 'model';
   inputFile?: string;
   reconstructionEngine?: string;
