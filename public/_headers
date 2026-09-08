@@ -1,0 +1,9 @@
+/demo/*.glb
+  Content-Type: model/gltf-binary
+  Access-Control-Allow-Origin: *
+  Cross-Origin-Resource-Policy: cross-origin
+
+/*.glb
+  Content-Type: model/gltf-binary
+  Access-Control-Allow-Origin: *
+  Cross-Origin-Resource-Policy: cross-origin

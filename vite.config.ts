@@ -36,7 +36,7 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
-    copyPublicDir: false,
+    copyPublicDir: true, // MUST be true so Netlify deployment includes static demo GLB models in dist/
     chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
