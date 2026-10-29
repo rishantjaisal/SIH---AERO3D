@@ -14,6 +14,7 @@ interface ModelInfoPanelProps {
   project?: Project;
   metrics?: ModelMetrics | null;
   isCalibrated?: boolean;
+  scaleFactor?: number;
   onClose?: () => void;
 }
 
@@ -21,6 +22,7 @@ export const ModelInfoPanel: React.FC<ModelInfoPanelProps> = ({
   project,
   metrics,
   isCalibrated = false,
+  scaleFactor = 1,
   onClose
 }) => {
   const meta = project?.metadata;
@@ -30,16 +32,19 @@ export const ModelInfoPanel: React.FC<ModelInfoPanelProps> = ({
   // Extract actual GLB metrics dynamically calculated from Three.js scene
   const vertices = metrics?.vertices || meta?.vertices || 0;
   const faces = metrics?.faces || meta?.faces || 0;
-  const meshes = metrics?.meshes || 1;
-  const bBoxX = metrics?.boundingBox?.x || meta?.boundingBox?.x || 0;
-  const bBoxY = metrics?.boundingBox?.y || meta?.boundingBox?.y || 0;
-  const bBoxZ = metrics?.boundingBox?.z || meta?.boundingBox?.z || 0;
+  const meshes = metrics?.meshes || 0;
+  // Bounding box is stored in raw model units; apply the calibration factor so the displayed unit ('m') is true
+  const dimScale = isCalibrated ? scaleFactor : 1;
+  const fmtDim = (v?: number) => (v && v > 0 ? (v * dimScale).toFixed(2) : 0);
+  const bBoxX = fmtDim(metrics?.boundingBox?.x ?? meta?.boundingBox?.x);
+  const bBoxY = fmtDim(metrics?.boundingBox?.y ?? meta?.boundingBox?.y);
+  const bBoxZ = fmtDim(metrics?.boundingBox?.z ?? meta?.boundingBox?.z);
 
   const unitLabel = isCalibrated ? 'm' : 'u (model units)';
 
   const gpsDisplay = meta?.gps && typeof meta.gps.latitude === 'number' && typeof meta.gps.longitude === 'number'
     ? `${meta.gps.latitude.toFixed(4)}°N, ${meta.gps.longitude.toFixed(4)}°E`
-    : 'Unavailable';
+    : 'Not available';
 
   return (
     <div className="w-80 bg-aerospace-900/95 border-l border-slate-800/80 flex flex-col h-full overflow-y-auto select-none backdrop-blur-md text-xs">
@@ -91,7 +96,7 @@ export const ModelInfoPanel: React.FC<ModelInfoPanelProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <div className="p-2.5 rounded bg-aerospace-950/60 border border-slate-800">
               <span className="text-[10px] text-slate-500 font-mono block">MESH COUNT</span>
-              <span className="font-mono font-bold text-slate-200 text-sm">{meshes || '1'}</span>
+              <span className="font-mono font-bold text-slate-200 text-sm">{meshes || 'Not available'}</span>
             </div>
             <div className="p-2.5 rounded bg-aerospace-950/60 border border-slate-800">
               <span className="text-[10px] text-slate-500 font-mono block font-bold">VERTICES</span>
@@ -118,15 +123,15 @@ export const ModelInfoPanel: React.FC<ModelInfoPanelProps> = ({
           <div className="grid grid-cols-3 gap-1 font-mono text-slate-200 text-xs font-semibold text-center">
             <div className="p-1.5 rounded bg-slate-900 border border-slate-800">
               <span className="text-[9px] text-slate-500 block">WIDTH (X)</span>
-              <span>{bBoxX ? `${bBoxX} ${unitLabel}` : 'N/A'}</span>
+              <span>{bBoxX ? `${bBoxX} ${unitLabel}` : 'Not available'}</span>
             </div>
             <div className="p-1.5 rounded bg-slate-900 border border-slate-800">
               <span className="text-[9px] text-slate-500 block">HEIGHT (Y)</span>
-              <span>{bBoxY ? `${bBoxY} ${unitLabel}` : 'N/A'}</span>
+              <span>{bBoxY ? `${bBoxY} ${unitLabel}` : 'Not available'}</span>
             </div>
             <div className="p-1.5 rounded bg-slate-900 border border-slate-800">
               <span className="text-[9px] text-slate-500 block">DEPTH (Z)</span>
-              <span>{bBoxZ ? `${bBoxZ} ${unitLabel}` : 'N/A'}</span>
+              <span>{bBoxZ ? `${bBoxZ} ${unitLabel}` : 'Not available'}</span>
             </div>
           </div>
         </div>
@@ -153,7 +158,7 @@ export const ModelInfoPanel: React.FC<ModelInfoPanelProps> = ({
           <div className="p-3 rounded-lg bg-aerospace-950/60 border border-slate-800 space-y-1.5 text-[11px]">
             <div className="flex justify-between text-slate-300">
               <span className="text-slate-500">Drone Model:</span>
-              <span className="font-medium">{meta?.droneModel || 'Not Specified'}</span>
+              <span className="font-medium">{meta?.droneModel || 'Not available'}</span>
             </div>
             <div className="flex justify-between text-slate-300">
               <span className="text-slate-500">GPS Coordinates:</span>
@@ -161,7 +166,7 @@ export const ModelInfoPanel: React.FC<ModelInfoPanelProps> = ({
             </div>
             <div className="flex justify-between text-slate-300">
               <span className="text-slate-500">Location:</span>
-              <span className="font-medium">{meta?.locationName || 'Not Specified'}</span>
+              <span className="font-medium">{meta?.locationName || 'Not available'}</span>
             </div>
           </div>
         </div>

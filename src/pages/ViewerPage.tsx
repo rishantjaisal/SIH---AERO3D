@@ -31,7 +31,8 @@ export const ViewerPage: React.FC = () => {
     clearMeasurements,
     scaleFactor,
     setScaleFactor,
-    isCalibrated
+    isCalibrated,
+    updateProject
   } = useProjects();
 
   // Find target project strictly by URL route parameter
@@ -51,7 +52,25 @@ export const ViewerPage: React.FC = () => {
   const [cameraPreset, setCameraPreset] = useState<CameraPreset>('default');
   const [showInfoPanel, setShowInfoPanel] = useState<boolean>(true);
   const [showCalibrationModal, setShowCalibrationModal] = useState<boolean>(false);
-  const [loadedMetrics, setLoadedMetrics] = useState<ModelMetrics | null>(null);
+  const [loadedMetricsState, setLoadedMetricsState] = useState<{ projectId: string; metrics: ModelMetrics } | null>(null);
+  // Only trust metrics that were reported for the project currently on screen
+  const loadedMetrics = loadedMetricsState && loadedMetricsState.projectId === projectId ? loadedMetricsState.metrics : null;
+
+  // Persist the real mesh statistics measured from the loaded GLB onto the project (shown on list/report pages)
+  useEffect(() => {
+    if (!currentProj || !loadedMetrics) return;
+    const meta = currentProj.metadata || {};
+    const bb = loadedMetrics.boundingBox;
+    const same =
+      meta.vertices === loadedMetrics.vertices &&
+      meta.faces === loadedMetrics.faces &&
+      meta.boundingBox?.x === bb.x && meta.boundingBox?.y === bb.y && meta.boundingBox?.z === bb.z;
+    if (!same) {
+      updateProject(currentProj.id, {
+        metadata: { ...meta, vertices: loadedMetrics.vertices, faces: loadedMetrics.faces, boundingBox: bb }
+      });
+    }
+  }, [loadedMetrics, currentProj?.id]);
 
   // Reset viewer state when projectId changes
   useEffect(() => {
@@ -59,7 +78,6 @@ export const ViewerPage: React.FC = () => {
     setRenderMode('textured');
     setShowGrid(true);
     setCameraPreset('default');
-    setLoadedMetrics(null);
     clearMeasurements();
   }, [projectId, clearMeasurements]);
 
@@ -317,7 +335,7 @@ export const ViewerPage: React.FC = () => {
             projectId={currentProj.id}
             modelUrl={currentProj.model_url}
             project={currentProj}
-            onMetricsUpdate={setLoadedMetrics}
+            onMetricsUpdate={(m) => setLoadedMetricsState({ projectId: currentProj.id, metrics: m })}
           />
         </div>
 
@@ -327,6 +345,7 @@ export const ViewerPage: React.FC = () => {
             project={currentProj}
             metrics={loadedMetrics}
             isCalibrated={isCalibrated}
+            scaleFactor={scaleFactor}
             onClose={() => setShowInfoPanel(false)}
           />
         )}

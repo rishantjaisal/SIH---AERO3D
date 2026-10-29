@@ -69,9 +69,9 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
             {/* Value Overlay Label */}
             <Html position={midPoint} center distanceFactor={25} zIndexRange={[100, 0]}>
               <div className="px-2.5 py-1 rounded bg-aerospace-900/90 border border-emerald-500/50 text-emerald-400 font-mono text-xs font-bold shadow-lg flex flex-col items-center whitespace-nowrap">
-                <span>{meas.realValueMeter.toFixed(2)} m</span>
+                <span>{(isCalibrated ? meas.value * scaleFactor : meas.value).toFixed(2)} {isCalibrated ? 'm' : 'u'}</span>
                 {!isCalibrated && (
-                  <span className="text-[8px] text-amber-400 uppercase font-sans">Relative Scale</span>
+                  <span className="text-[8px] text-amber-400 uppercase font-sans">Model units (uncalibrated)</span>
                 )}
               </div>
             </Html>

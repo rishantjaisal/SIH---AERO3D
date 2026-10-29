@@ -1,8 +1,20 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Project, InspectionMarker, Measurement3D, SystemHealth } from '../types';
 import { api } from '../services/api';
 
 const LOCAL_STORAGE_KEY = 'aero3d_projects';
+// Ids the user deleted. Kept so built-in/backend-listed projects do not reappear after refresh.
+const DELETED_IDS_KEY = 'aero3d_deleted_project_ids';
+
+function loadDeletedIds(): string[] {
+  try {
+    const raw = localStorage.getItem(DELETED_IDS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter(x => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
 
 const SVG_THUMBNAILS = {
   academic: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="150" y="120" width="300" height="180" rx="6" fill="%231e293b" stroke="%2338bdf8" stroke-width="2"/><rect x="180" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="240" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="300" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="360" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><polygon points="250,120 300,70 350,120" fill="%230284c7"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">KIET CAMPUS DIGITAL TWIN</text></svg>`,
@@ -104,7 +116,7 @@ function loadSavedProjects(): Project[] {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed) && (parsed.length > 0 || loadDeletedIds().length > 0)) {
         return parsed;
       }
     }
@@ -133,6 +145,7 @@ interface ProjectContextType {
   addProject: (newProject: Project) => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
   getProjectById: (id: string) => Project | undefined;
+  deleteProject: (id: string) => Promise<{ ok: boolean; message?: string }>;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -174,6 +187,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const backendIds = new Set(backendProjects.map(bp => bp.id));
         setProjects(prev => {
           // Drop built-in demo projects the server no longer lists (their GLB is not deployed)
+          const deletedIds = new Set(loadDeletedIds());
           const merged = prev.filter(p => !(p.isDemo && p.source_type === 'demo' && !backendIds.has(p.id)));
           // Merge backend projects with local projects without overwriting custom local model_urls
           backendProjects.forEach(bp => {
@@ -185,7 +199,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 // Keep local model_url if backend returned empty or default
                 model_url: bp.model_url || merged[idx].model_url
               };
-            } else {
+            } else if (!deletedIds.has(bp.id)) {
               merged.push(bp);
             }
           });
@@ -214,18 +228,19 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setMarkers(prev => prev.filter(m => m.id !== id));
   };
 
-  const addMeasurement = (measData: Omit<Measurement3D, 'id' | 'timestamp'>) => {
+  const addMeasurement = useCallback((measData: Omit<Measurement3D, 'id' | 'timestamp'>) => {
     const newMeas: Measurement3D = {
       ...measData,
       id: `meas-${Date.now()}`,
       timestamp: new Date().toLocaleTimeString()
     };
     setMeasurements(prev => [...prev, newMeas]);
-  };
+  }, []);
 
-  const clearMeasurements = () => {
+  // Stable identity: consumers use this in effect dependencies and must not re-run on every provider render
+  const clearMeasurements = useCallback(() => {
     setMeasurements([]);
-  };
+  }, []);
 
   const handleSetScaleFactor = (factor: number) => {
     setScaleFactor(factor);
@@ -248,6 +263,32 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (activeProject.id === id) {
       setActiveProject(prev => ({ ...prev, ...updates }));
     }
+  };
+
+  const deleteProject = async (id: string): Promise<{ ok: boolean; message?: string }> => {
+    const target = projects.find(p => p.id === id);
+    if (!target) return { ok: false, message: 'Project not found.' };
+
+    // Server-owned files/records are removed through the backend; a reachable backend that fails aborts the delete.
+    const result = await api.deleteProject(id);
+    if (!result.ok) return { ok: false, message: result.message || 'Delete failed.' };
+
+    const remaining = projects.filter(p => p.id !== id);
+    setProjects(remaining);
+    setMarkers(prev => prev.filter(m => m.projectId !== id));
+    setMeasurements(prev => prev.filter(m => m.projectId !== id));
+    try {
+      localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(Array.from(new Set([...loadDeletedIds(), id]))));
+    } catch (err) {
+      console.warn('[Aero3D Storage] Failed to record deleted project id:', err);
+    }
+    if (activeProject.id === id && remaining.length > 0) {
+      setActiveProject(remaining[0]);
+    }
+    return {
+      ok: true,
+      message: result.backendReachable ? undefined : 'Backend not reachable: removed from this browser only.'
+    };
   };
 
   const getProjectById = (id: string): Project | undefined => {
@@ -274,7 +315,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         refreshData,
         addProject,
         updateProject,
-        getProjectById
+        getProjectById,
+        deleteProject
       }}
     >
       {children}

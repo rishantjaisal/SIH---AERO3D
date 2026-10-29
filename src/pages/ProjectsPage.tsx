@@ -15,6 +15,7 @@ import {
 import { Sidebar } from '../components/layout/Sidebar';
 import { Topbar } from '../components/layout/Topbar';
 import { useProjects } from '../store/ProjectContext';
+import { DeleteProjectButton } from '../components/DeleteProjectButton';
 
 export const ProjectsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -99,16 +100,16 @@ export const ProjectsPage: React.FC = () => {
                           <span className="text-[10px] text-slate-500 font-mono">{proj.id}</span>
                         </div>
                       </td>
-                      <td className="p-4 text-slate-300">{proj.metadata?.locationName || 'Delhi NCR, India'}</td>
+                      <td className="p-4 text-slate-300">{proj.metadata?.locationName || 'Not specified'}</td>
                       <td className="p-4 font-mono text-slate-300">
-                        {proj.metadata?.vertices?.toLocaleString() || '48,520'} Verts
+                        {proj.metadata?.vertices ? `${proj.metadata.vertices.toLocaleString()} Verts` : 'Not available'}
                       </td>
                       <td className="p-4 font-mono">
                         <span className="px-2 py-0.5 rounded text-[10px] bg-sky-500/20 text-sky-300 border border-sky-500/30">
                           {(proj.provider || 'demo').toUpperCase()}
                         </span>
                       </td>
-                      <td className="p-4 font-mono text-slate-400">{proj.metadata?.surveyDate || '2026-08-28'}</td>
+                      <td className="p-4 font-mono text-slate-400">{proj.metadata?.surveyDate || (proj.created_at ? proj.created_at.slice(0, 10) : '—')}</td>
                       <td className="p-4 text-right space-x-2">
                         <button
                           onClick={() => {
@@ -131,6 +132,7 @@ export const ProjectsPage: React.FC = () => {
                         >
                           Report
                         </Link>
+                        <DeleteProjectButton project={proj} />
                       </td>
                     </tr>
                   ))}
