@@ -17,6 +17,7 @@ import { ModelInfoPanel } from '../components/viewer/ModelInfoPanel';
 import { ModelMetrics } from '../components/viewer/BuildingModel';
 import { useProjects } from '../store/ProjectContext';
 import { api } from '../services/api';
+import { LengthUnit } from '../utils/units';
 
 export const ViewerPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -32,6 +33,7 @@ export const ViewerPage: React.FC = () => {
     scaleFactor,
     setScaleFactor,
     isCalibrated,
+    resetCalibration,
     updateProject
   } = useProjects();
 
@@ -49,6 +51,10 @@ export const ViewerPage: React.FC = () => {
   const [activeTool, setActiveTool] = useState<ActiveTool>('orbit');
   const [renderMode, setRenderMode] = useState<RenderMode>('textured');
   const [showGrid, setShowGrid] = useState<boolean>(true);
+  const [showDimensions, setShowDimensions] = useState<boolean>(true);
+  const [showBoundingBox, setShowBoundingBox] = useState<boolean>(false);
+  const [showLabels, setShowLabels] = useState<boolean>(true);
+  const [unit, setUnit] = useState<LengthUnit>('m');
   const [cameraPreset, setCameraPreset] = useState<CameraPreset>('default');
   const [showInfoPanel, setShowInfoPanel] = useState<boolean>(true);
   const [showCalibrationModal, setShowCalibrationModal] = useState<boolean>(false);
@@ -78,8 +84,10 @@ export const ViewerPage: React.FC = () => {
     setRenderMode('textured');
     setShowGrid(true);
     setCameraPreset('default');
+    setUnit('m');
     clearMeasurements();
-  }, [projectId, clearMeasurements]);
+    resetCalibration();
+  }, [projectId, clearMeasurements, resetCalibration]);
 
   // Pin marker creation dialog state
   const [pendingMarkerPoint, setPendingMarkerPoint] = useState<[number, number, number] | null>(null);
@@ -316,6 +324,14 @@ export const ViewerPage: React.FC = () => {
           isCalibrated={isCalibrated}
           clearMeasurements={clearMeasurements}
           measurementCount={measurements.length}
+          showDimensions={showDimensions}
+          setShowDimensions={setShowDimensions}
+          showBoundingBox={showBoundingBox}
+          setShowBoundingBox={setShowBoundingBox}
+          showLabels={showLabels}
+          setShowLabels={setShowLabels}
+          unit={unit}
+          setUnit={setUnit}
         />
 
         {/* 3D WebGL Canvas Keyed strictly by projectId & model_url */}
@@ -335,6 +351,10 @@ export const ViewerPage: React.FC = () => {
             projectId={currentProj.id}
             modelUrl={currentProj.model_url}
             project={currentProj}
+            showDimensions={showDimensions}
+            showBoundingBox={showBoundingBox}
+            showLabels={showLabels}
+            unit={unit}
             onMetricsUpdate={(m) => setLoadedMetricsState({ projectId: currentProj.id, metrics: m })}
           />
         </div>
@@ -346,6 +366,7 @@ export const ViewerPage: React.FC = () => {
             metrics={loadedMetrics}
             isCalibrated={isCalibrated}
             scaleFactor={scaleFactor}
+            unit={unit}
             onClose={() => setShowInfoPanel(false)}
           />
         )}
