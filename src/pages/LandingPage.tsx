@@ -321,6 +321,10 @@ export const LandingPage: React.FC = () => {
           <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
               <span className="text-slate-300 font-bold">Aero3D Intelligence</span> © 2026 — INNOTECH Project
+              <div className="mt-1 text-[10px] text-slate-500">
+                Homepage 3D model: Drone Building Scans — Matthew Guertin, 2026.{' '}
+                <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline hover:text-sky-300">CC BY 4.0</a>. Optimized for web.
+              </div>
             </div>
             <div className="flex items-center gap-4 text-slate-400">
               <Link to="/presentation" className="hover:text-sky-300">Presentation Mode</Link>
