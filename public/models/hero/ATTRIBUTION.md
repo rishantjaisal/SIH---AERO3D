@@ -17,13 +17,17 @@ If you modify the file (resize textures, compress), say so in the credit: "optim
 
 ## Status
 
-The file itself is not in the repository yet. It could not be downloaded from the build environment
-(huggingface.co is blocked there). Until `hero-building.glb` exists, the homepage falls back to
+`hero-building.glb` is included. It is the original `flat-roof.glb` (21.8 MB, ~2.3M triangles) optimized for web:
+mesh simplified to about 99K triangles, texture resized to 2048 px WebP, geometry compressed with meshopt (1.5 MB).
+Credit line for the site: "Drone Building Scans — Matthew Guertin, 2026. CC BY 4.0. Optimized for web."
+
+The model is Z-up; the homepage rotates it at load time. If the file is ever missing, the homepage falls back to
 `public/demo/build.glb`.
 
-## How to add it
+## Regenerating
 
-1. Download `flat-roof.glb` from the URL above.
-2. Run `bash scripts/optimize-hero-model.sh path/to/flat-roof.glb` (writes `public/models/hero/hero-building.glb`).
-   The script has not been run yet; check the output size (target: under about 8 MB) and look at the homepage.
-3. Commit the result.
+```
+bash scripts/optimize-hero-model.sh path/to/flat-roof.glb
+```
+That script runs gltf-transform's default optimize pass (about 550K triangles). The shipped file was additionally
+simplified with `gltf-transform weld` then `simplify --ratio 0.1 --error 0.02`, then `simplify --ratio 0.18 --error 0.05`.
