@@ -1,20 +1,33 @@
 import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Box, BrainCircuit, Cpu, FileText, Map, Play, PlusCircle, Ruler } from 'lucide-react';
+import { Box, BrainCircuit, Building2, Mountain, Cpu, FileText, Map, Play, PlusCircle, Ruler } from 'lucide-react';
 import { Navbar } from '../components/layout/Navbar';
 import { useProjects } from '../store/ProjectContext';
 import { clamp, prefersReducedMotion, story, webglAvailable } from '../components/landing/story';
+import type { SiteId } from '../components/landing/heroModel';
 import '../styles/landing.css';
 
 const LandingScene = lazy(() => import('../components/landing/LandingScene').then(m => ({ default: m.LandingScene })));
 
 const STAGES = ['Orbit', 'Capture', 'Reconstruct', 'Analyse', 'Deliver'];
 // Illustrative annotations only: they show what the analysis layer would label, not real detections.
-const TAGS: Array<{ name: string; meta: string; amber?: boolean }> = [
-  { name: 'Highest point', meta: 'sample label' },
-  { name: 'Roof surface', meta: 'sample label', amber: true },
-  { name: 'Ground / paving', meta: 'sample label' },
-  { name: 'Vegetation', meta: 'sample label' }
+const TAGS_BY_SITE: Record<SiteId, Array<{ name: string; meta: string; amber?: boolean }>> = {
+  flatroof: [
+    { name: 'Highest point', meta: 'sample label' },
+    { name: 'Roof surface', meta: 'sample label', amber: true },
+    { name: 'Ground / paving', meta: 'sample label' },
+    { name: 'Vegetation', meta: 'sample label' }
+  ],
+  mountain: [
+    { name: 'Highest peak', meta: 'sample label' },
+    { name: 'Rock face', meta: 'sample label', amber: true },
+    { name: 'Valley floor', meta: 'sample label' },
+    { name: 'Lower slope', meta: 'sample label' }
+  ]
+};
+const SITES: Array<{ id: SiteId; label: string; Icon: React.ElementType }> = [
+  { id: 'flatroof', label: 'Flat roof', Icon: Building2 },
+  { id: 'mountain', label: 'Mountain terrain', Icon: Mountain }
 ];
 
 const fmt = (n: number) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(Math.round(n)));
@@ -30,6 +43,17 @@ export const LandingPage: React.FC = () => {
   const secRefs = useRef<Array<HTMLElement | null>>([]);
   const [gl, setGl] = useState<boolean>(() => webglAvailable());
   const [loaded, setLoaded] = useState(false);
+  const [site, setSite] = useState<SiteId>('flatroof');
+  const [siteStatus, setSiteStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [siteNote, setSiteNote] = useState<string | null>(null);
+  const TAGS = TAGS_BY_SITE[site];
+  const onSiteStatus = useCallback((st: 'loading' | 'ready' | 'error') => {
+    setSiteStatus(st);
+    if (st === 'error') {
+      setSite('flatroof');
+      setSiteNote('The mountain model could not be loaded, so the flat-roof background is shown.');
+    }
+  }, []);
   const [inStory, setInStory] = useState(true);
   const [stage, setStage] = useState(0);
 
@@ -153,7 +177,7 @@ export const LandingPage: React.FC = () => {
         <div className="ln-fallback" />
         {gl && (
           <Suspense fallback={null}>
-            <LandingScene active={inStory} onError={() => setGl(false)} />
+            <LandingScene active={inStory} onError={() => setGl(false)} site={site} onSiteStatus={onSiteStatus} />
           </Suspense>
         )}
         <div className="ln-vignette" />
@@ -336,6 +360,29 @@ export const LandingPage: React.FC = () => {
           </div>
         </footer>
       </div>
+
+      {/* background switcher */}
+      {gl && (
+        <div className={`ln-sites ${inStory ? '' : 'off'}`} role="group" aria-label="Homepage 3D background">
+          <span className="ln-sites-label">Background</span>
+          <div className="ln-sites-seg">
+            {SITES.map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={site === id}
+                onClick={() => { setSiteNote(null); setSite(id); }}
+                className={site === id ? 'on' : ''}
+              >
+                <Icon className="w-4 h-4" aria-hidden />
+                <span>{label}</span>
+                {site === id && siteStatus === 'loading' && <i className="ln-spin" role="status" aria-label="Loading background" />}
+              </button>
+            ))}
+          </div>
+          {siteNote && <p className="ln-sites-note" role="alert">{siteNote}</p>}
+        </div>
+      )}
 
       {/* steps rail */}
       <nav className={`ln-rail ${inStory ? '' : 'off'}`} aria-label="Story steps">

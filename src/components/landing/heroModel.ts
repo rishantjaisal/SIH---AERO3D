@@ -29,3 +29,22 @@ export function resolveHeroModelUrl(): Promise<string> {
   }
   return pending;
 }
+
+/**
+ * Selectable homepage backgrounds. "flatroof" is the original; "mountain" is an extra CC0 terrain model with the same scroll effects.
+ * Both are homepage-only visuals, not drone reconstructions (see public/models/hero and public/models/environments).
+ */
+export type SiteId = 'flatroof' | 'mountain';
+export const MOUNTAIN_MODEL_URL = '/models/environments/mountain-range.glb';
+
+/** True only if the URL really serves a GLB (SPA fallbacks answer 200 with index.html). */
+export async function isGlb(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, { headers: { Range: 'bytes=0-3' } });
+    if (!res.ok) return false;
+    const h = new Uint8Array(await res.arrayBuffer()).slice(0, 4);
+    return h[0] === 0x67 && h[1] === 0x6c && h[2] === 0x54 && h[3] === 0x46;
+  } catch {
+    return false;
+  }
+}

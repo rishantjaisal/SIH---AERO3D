@@ -8,12 +8,9 @@ import { MeasurementTool } from './MeasurementTool';
 import { DimensionLines } from './DimensionLines';
 import { LengthUnit } from '../../utils/units';
 import { ActiveTool, RenderMode, CameraPreset } from './FloatingToolbar';
-import { EnvironmentLayer, EnvironmentCamera, EnvironmentId, EnvironmentStatus, ENVIRONMENT_BACKDROP } from './EnvironmentLayer';
 import { InspectionMarker, Measurement3D, Project } from '../../types';
 import { AlertTriangle, RefreshCw, EyeOff, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const NOOP = () => {};
 
 interface ThreeCanvasProps {
   activeTool: ActiveTool;
@@ -34,8 +31,6 @@ interface ThreeCanvasProps {
   showLabels?: boolean;
   unit?: LengthUnit;
   onMetricsUpdate?: (metrics: ModelMetrics) => void;
-  environment?: EnvironmentId;
-  onEnvironmentStatus?: (s: EnvironmentStatus) => void;
 }
 
 const LoadingOverlay: React.FC<{ projectName?: string }> = ({ projectName }) => {
@@ -114,9 +109,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   showBoundingBox = false,
   showLabels = true,
   unit = 'm',
-  onMetricsUpdate,
-  environment = 'default',
-  onEnvironmentStatus
+  onMetricsUpdate
 }) => {
   const navigate = useNavigate();
   const controlsRef = useRef<any>(null);
@@ -208,10 +201,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const gridScale = modelMetrics ? Math.max(gridCell * 40, modelMetrics.maxDimension * 6) : 100;
 
   return (
-    <div
-      className="w-full h-full relative bg-aerospace-950 overflow-hidden transition-[background] duration-500"
-      style={ENVIRONMENT_BACKDROP[environment] ? { background: ENVIRONMENT_BACKDROP[environment] } : undefined}
-    >
+    <div className="w-full h-full relative bg-aerospace-950 overflow-hidden">
       
       {/* Point Cloud Unavailable Notice */}
       {renderMode === 'pointcloud' && !hasNativePointCloud && (
@@ -307,20 +297,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               scale={gridScale * 0.8}
               blur={1.5}
               far={15}
-            />
-
-            <EnvironmentCamera
-              environment={environment}
-              controlsRef={controlsRef}
-              maxDimension={modelMetrics?.maxDimension || 20}
-              height={modelMetrics?.size.y || 0}
-            />
-
-            {/* Optional environment scenery (renders nothing for the default environment) */}
-            <EnvironmentLayer
-              environment={environment}
-              focusSize={modelMetrics?.maxDimension || 20}
-              onStatus={onEnvironmentStatus || NOOP}
             />
 
             {/* 3D Digital Twin Mesh Model */}
