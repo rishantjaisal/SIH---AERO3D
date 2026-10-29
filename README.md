@@ -87,13 +87,16 @@ Aero3D uses **FFmpeg** to extract high-resolution, un-blurred frames from drone 
 
 ## 🧩 Photogrammetry Engine Configuration
 
-Set the `PHOTOGRAMMETRY_ENGINE` environment variable in `.env`:
+Copy `.env.example` to `.env` and set the `PHOTOGRAMMETRY_ENGINE` environment variable
+(`RECONSTRUCTION_ENGINE` and `RECONSTRUCTION_PROVIDER` are still read as legacy fallbacks):
 
 ```env
 # Options: demo | colmap | polycam
 PHOTOGRAMMETRY_ENGINE=demo
 FRAME_RATE=3
 COLMAP_PATH=C:/COLMAP/bin/colmap.exe
+# Browser origins allowed to call the API (comma-separated)
+CORS_ORIGIN=http://localhost:3000
 ```
 
 ### 1. COLMAP Local Engine Setup (`PHOTOGRAMMETRY_ENGINE=colmap`)
@@ -114,7 +117,20 @@ COLMAP_PATH=C:/COLMAP/bin/colmap.exe
 docker-compose up --build
 ```
 
-Access the application at `http://localhost:3000`.
+Access the application at `http://localhost:5000` (the Express server serves both the API and the built frontend).
+The optional Python service is started with `docker-compose --profile full up --build` and listens on port 8000.
+
+## ✅ Tests
+
+```bash
+npm test
+```
+
+## 🔒 Notes
+
+- Project IDs must match `[a-zA-Z0-9_-]{1,64}`; other values are rejected with HTTP 400.
+- Uploads are limited to the extensions `.mp4 .mov .mkv .jpg .jpeg .png .zip .glb .gltf .obj .ply`, 250 MB per file, 50 files.
+- Large demo models (`taj_mahal_3d_model.glb`, `ruined_city_free_5.glb`) are not in git; those demo projects are hidden unless the files exist in `public/demo/`.
 
 ---
 

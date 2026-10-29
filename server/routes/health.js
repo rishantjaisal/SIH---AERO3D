@@ -1,5 +1,6 @@
 import express from 'express';
 import { PolycamProvider } from '../providers/PolycamProvider.js';
+import { getEngine } from '../config.js';
 
 const router = express.Router();
 
@@ -7,7 +8,7 @@ const router = express.Router();
 router.get('/', (req, res) => {
   const polycam = new PolycamProvider();
   const polycamConfigured = polycam.isConfigured();
-  const providerSetting = process.env.RECONSTRUCTION_PROVIDER || 'demo';
+  const providerSetting = getEngine();
 
   res.json({
     status: 'HEALTHY',

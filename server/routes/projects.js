@@ -6,8 +6,29 @@ import { ReconstructionFactory } from '../providers/ReconstructionFactory.js';
 import { jobManager } from '../services/JobManager.js';
 import { validateMediaFile, extractFramesFromVideo, isFFmpegAvailable } from '../utils/ffmpegExtractor.js';
 import { ColmapProvider } from '../providers/ColmapProvider.js';
+import { getEngine, getFrameRate, isValidProjectId } from '../config.js';
 
 const router = express.Router();
+
+// Reject any :id / :projectId that is not a plain path segment (blocks ../ traversal)
+router.param('id', (req, res, next, id) => {
+  if (!isValidProjectId(id)) {
+    return res.status(400).json({ error: true, message: 'Invalid project id.' });
+  }
+  next();
+});
+router.param('projectId', (req, res, next, id) => {
+  if (!isValidProjectId(id)) {
+    return res.status(400).json({ error: true, message: 'Invalid project id.' });
+  }
+  next();
+});
+
+/** Strip any directory part and unsafe characters from a client-supplied file name. */
+function safeFileName(name) {
+  const base = path.basename(String(name || 'file')).replace(/[^a-zA-Z0-9._-]/g, '_');
+  return base || 'file';
+}
 
 // File upload configuration
 const uploadDir = path.join(process.cwd(), 'server', 'uploads');
@@ -25,13 +46,17 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 250 * 1024 * 1024 }, // 250MB limit
+  limits: { fileSize: 250 * 1024 * 1024, files: 50 }, // 250MB per file, 50 files
   fileFilter: (req, file, cb) => {
     try {
+      // Size is enforced by multer's `limits`; here we check the extension.
       validateMediaFile(file.path, file.originalname, 0);
       cb(null, true);
-    } catch (_err) {
-      cb(null, true);
+    } catch (err) {
+      const rejection = new Error(err.message);
+      rejection.status = 400;
+      rejection.code = 'UNSUPPORTED_FILE';
+      cb(rejection);
     }
   }
 });
@@ -106,9 +131,14 @@ router.get('/:id/model', (req, res) => {
 // POST /api/projects/upload & /api/projects/:projectId/upload
 const handleUploadRoute = async (req, res) => {
   try {
-    const projectId = req.body.projectId || req.params.projectId || `aero-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const projectId = req.params.projectId || req.body.projectId || `aero-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const metadata = req.body || {};
     const files = req.files || [];
+
+    if (!isValidProjectId(projectId)) {
+      files.forEach(f => fs.rmSync(f.path, { force: true }));
+      return res.status(400).json({ error: true, message: 'Invalid project id.' });
+    }
 
     if (files.length === 0) {
       return res.status(400).json({
@@ -131,7 +161,8 @@ const handleUploadRoute = async (req, res) => {
 
     files.forEach(file => {
       const ext = path.extname(file.originalname).toLowerCase();
-      const destPath = path.join(inputDir, file.originalname);
+      const cleanName = safeFileName(file.originalname);
+      const destPath = path.join(inputDir, cleanName);
       fs.copyFileSync(file.path, destPath);
 
       if (['.glb', '.gltf'].includes(ext)) {
@@ -140,8 +171,11 @@ const handleUploadRoute = async (req, res) => {
       } else if (['.mp4', '.mov', '.mkv'].includes(ext)) {
         primaryVideoFile = destPath;
       } else if (['.jpg', '.jpeg', '.png'].includes(ext)) {
-        fs.copyFileSync(file.path, path.join(framesDir, file.originalname));
+        fs.copyFileSync(file.path, path.join(framesDir, cleanName));
       }
+
+      // The temp upload copy is no longer needed once it lives in the project folder
+      fs.rmSync(file.path, { force: true });
     });
 
     const isGlbModel = !!uploadedGlbFile;
@@ -193,7 +227,8 @@ router.post('/:projectId/upload', upload.array('files', 50), handleUploadRoute);
 // POST /api/projects/:id/process - Asynchronous photogrammetry job trigger
 router.post('/:id/process', async (req, res) => {
   const projectId = req.params.id;
-  const activeEngine = (process.env.PHOTOGRAMMETRY_ENGINE || process.env.RECONSTRUCTION_ENGINE || 'demo').toLowerCase();
+  const activeEngine = getEngine();
+  const fps = getFrameRate();
 
   const job = jobManager.createJob(projectId, {
     reconstructionEngine: activeEngine
@@ -249,12 +284,12 @@ router.post('/:id/process', async (req, res) => {
         stage: 'FRAME_EXTRACTION',
         stageLabel: 'Extracting Video Frames',
         progress: 15,
-        message: 'Extracting video frames at 3 FPS using FFmpeg...'
+        message: `Extracting video frames at ${fps} FPS using FFmpeg...`
       });
 
       let frameCount = 0;
       if (isVideoInput && videoPath) {
-        const extractResult = await extractFramesFromVideo(videoPath, framesDir, 3);
+        const extractResult = await extractFramesFromVideo(videoPath, framesDir, fps);
         frameCount = extractResult.frameCount;
       } else if (fs.existsSync(framesDir)) {
         const photoFiles = fs.readdirSync(framesDir).filter(f => ['.jpg', '.jpeg', '.png'].includes(path.extname(f).toLowerCase()));

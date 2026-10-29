@@ -1,9 +1,10 @@
 import os
+import re
 import shutil
 import asyncio
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTask
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 
 from app.pipeline.job_manager import python_job_manager
 from app.pipeline.ffmpeg_worker import extract_frames
@@ -11,11 +12,13 @@ from app.pipeline.colmap_engine import ColmapEngine
 
 app = FastAPI(title="Aero3D Intelligence Python Photogrammetry Backend", version="1.0.0")
 
+ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGIN", "http://localhost:3000").split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -23,6 +26,21 @@ colmap_engine = ColmapEngine()
 
 STORAGE_DIR = os.path.join(os.getcwd(), "storage", "projects")
 os.makedirs(STORAGE_DIR, exist_ok=True)
+
+PROJECT_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
+ALLOWED_UPLOAD_EXTS = {".mp4", ".mov", ".mkv", ".jpg", ".jpeg", ".png", ".zip", ".glb", ".gltf"}
+DEMO_MODELS = {
+    "demo-proj-001": "build.glb",
+    "demo-proj-002": "taj_mahal_3d_model.glb",
+    "demo-proj-003": "ruined_city_free_5.glb",
+}
+
+
+def validate_project_id(project_id: str) -> str:
+    """Reject ids that could escape the storage directory."""
+    if not PROJECT_ID_RE.match(project_id):
+        raise HTTPException(status_code=400, detail="Invalid project id")
+    return project_id
 
 @app.get("/api/health")
 def health_check():
@@ -35,38 +53,47 @@ def health_check():
 
 @app.get("/api/projects")
 def list_projects():
-    return {
-        "success": True,
-        "count": 3,
-        "projects": [
-            {
-                "id": "demo-proj-001",
-                "name": "KIET Campus Building Survey",
-                "status": "SUCCEEDED",
-                "model_url": "/demo/build.glb",
-                "provider": "demo"
-            }
-        ]
+    demo_dir = os.path.join(os.getcwd(), "public", "demo")
+    names = {
+        "demo-proj-001": "KIET Campus Building Survey",
+        "demo-proj-002": "Taj Mahal 3D Digital Twin Survey",
+        "demo-proj-003": "Smart Ruined City Urban Survey",
     }
+    projects = [
+        {
+            "id": pid,
+            "name": names[pid],
+            "status": "SUCCEEDED",
+            "model_url": f"/demo/{filename}",
+            "provider": "demo",
+        }
+        for pid, filename in DEMO_MODELS.items()
+        if os.path.exists(os.path.join(demo_dir, filename))
+    ]
+    return {"success": True, "count": len(projects), "projects": projects}
 
 @app.get("/api/projects/{project_id}/model")
 def get_project_model(project_id: str):
+    validate_project_id(project_id)
     custom_model = os.path.join(STORAGE_DIR, project_id, "output", "model.glb")
-    taj_mahal_demo = os.path.join(os.getcwd(), "public", "demo", "taj_mahal_3d_model.glb")
-    default_demo = os.path.join(os.getcwd(), "public", "demo", "build.glb")
-
     if os.path.exists(custom_model):
         return FileResponse(custom_model, media_type="model/gltf-binary")
-    elif ("taj" in project_id.lower() or "tj" in project_id.lower()) and os.path.exists(taj_mahal_demo):
-        return FileResponse(taj_mahal_demo, media_type="model/gltf-binary")
-    elif os.path.exists(default_demo):
-        return FileResponse(default_demo, media_type="model/gltf-binary")
+
+    demo_file = DEMO_MODELS.get(project_id)
+    if demo_file:
+        demo_path = os.path.join(os.getcwd(), "public", "demo", demo_file)
+        if os.path.exists(demo_path):
+            return FileResponse(demo_path, media_type="model/gltf-binary")
 
     raise HTTPException(status_code=404, detail="3D GLB model output asset not found")
 
 @app.post("/api/projects/upload")
 @app.post("/api/projects/{project_id}/upload")
 async def upload_survey_files(project_id: str = "proj-demo", files: list[UploadFile] = File(...)):
+    validate_project_id(project_id)
+    for f in files:
+        if os.path.splitext(f.filename or "")[1].lower() not in ALLOWED_UPLOAD_EXTS:
+            raise HTTPException(status_code=400, detail=f"Unsupported file type: {f.filename}")
     proj_dir = os.path.join(STORAGE_DIR, project_id)
     input_dir = os.path.join(proj_dir, "input")
     frames_dir = os.path.join(proj_dir, "frames")
@@ -77,16 +104,17 @@ async def upload_survey_files(project_id: str = "proj-demo", files: list[UploadF
 
     saved_files = []
     for file in files:
-        file_path = os.path.join(input_dir, file.filename)
+        safe_name = os.path.basename(file.filename)
+        file_path = os.path.join(input_dir, safe_name)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        saved_files.append(file.filename)
+        saved_files.append(safe_name)
 
-        ext = os.path.splitext(file.filename)[1].lower()
+        ext = os.path.splitext(safe_name)[1].lower()
         if ext in [".glb", ".gltf"]:
             shutil.copyfile(file_path, os.path.join(output_dir, "model.glb"))
         elif ext in [".jpg", ".jpeg", ".png"]:
-            shutil.copyfile(file_path, os.path.join(frames_dir, file.filename))
+            shutil.copyfile(file_path, os.path.join(frames_dir, safe_name))
 
     return {
         "success": True,
@@ -168,7 +196,8 @@ async def run_reconstruction_pipeline(job_id: str, project_id: str):
     })
 
 @app.post("/api/projects/{project_id}/process")
-def process_project(project_id: str):
+async def process_project(project_id: str):
+    validate_project_id(project_id)
     engine_mode = os.getenv("PHOTOGRAMMETRY_ENGINE", "demo").lower()
     job = python_job_manager.create_job(project_id, engine=engine_mode)
     asyncio.create_task(run_reconstruction_pipeline(job["id"], project_id))

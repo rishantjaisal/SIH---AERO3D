@@ -27,54 +27,58 @@ export const ProcessingPage: React.FC = () => {
   const [job, setJob] = useState<any>(null);
   const [elapsed, setElapsed] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [backendUnreachable, setBackendUnreachable] = useState<boolean>(false);
 
   // Poll real job status from backend
-  const fetchJobStatus = useCallback(async () => {
+  const fetchJobStatus = useCallback(async (): Promise<'running' | 'done' | 'unreachable'> => {
     try {
       const jobData = await api.getJob(targetId);
-      if (jobData) {
-        setJob(jobData);
-        if (jobData.status === 'completed') {
-          updateProject(targetId, {
-            status: 'SUCCEEDED',
-            model_url: `/api/projects/${targetId}/model`
-          });
-          refreshData();
-        } else if (jobData.status === 'failed') {
-          setErrorMsg(jobData.message || 'Photogrammetry reconstruction engine encountered an error.');
-        }
+      if (!jobData) {
+        setBackendUnreachable(true);
+        return 'unreachable';
       }
+      setBackendUnreachable(false);
+      setJob(jobData);
+      if (jobData.status === 'completed') {
+        updateProject(targetId, {
+          status: 'SUCCEEDED',
+          model_url: `/api/projects/${targetId}/model`
+        });
+        refreshData();
+        return 'done';
+      }
+      if (jobData.status === 'failed') {
+        setErrorMsg(jobData.message || 'Photogrammetry reconstruction engine encountered an error.');
+        return 'done';
+      }
+      return 'running';
     } catch (_err) {
-      // Backend status polling notice
+      setBackendUnreachable(true);
+      return 'unreachable';
     }
   }, [targetId, updateProject, refreshData]);
 
   useEffect(() => {
     let isMounted = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let failures = 0;
 
-    fetchJobStatus();
-    const interval = setInterval(() => {
-      if (isMounted) fetchJobStatus();
-    }, 1000);
+    // Poll every 1 s, back off up to 10 s while the backend is unreachable, and stop once the job ends
+    const tick = async () => {
+      const jobData = await fetchJobStatus();
+      if (!isMounted) return;
+      if (jobData === 'done') return;
+      failures = jobData === 'unreachable' ? failures + 1 : 0;
+      const delay = Math.min(10000, 1000 * Math.pow(2, Math.min(failures, 4)));
+      timer = setTimeout(tick, delay);
+    };
+    tick();
 
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      if (timer) clearTimeout(timer);
     };
   }, [targetId, fetchJobStatus]);
-
-  // Simulated client-side progress if backend is offline
-  useEffect(() => {
-    if (!job && currentProject && currentProject.status === 'QUEUED') {
-      const simTimer = setTimeout(() => {
-        updateProject(targetId, {
-          status: 'SUCCEEDED',
-          model_url: `/api/projects/${targetId}/model`
-        });
-      }, 5000);
-      return () => clearTimeout(simTimer);
-    }
-  }, [job, currentProject, targetId, updateProject]);
 
   // Elapsed timer for user reference
   useEffect(() => {
@@ -85,7 +89,7 @@ export const ProcessingPage: React.FC = () => {
   const isCompleted = job ? job.status === 'completed' : currentProject?.status === 'SUCCEEDED';
   const isFailed = job ? job.status === 'failed' : false;
   const isEngineUnavailable = job?.stage === 'ENGINE_UNAVAILABLE';
-  const progress = job ? job.progress : isCompleted ? 100 : Math.min(95, elapsed * 20);
+  const progress = job ? job.progress : isCompleted ? 100 : 0;
 
   const stagesList = [
     { key: 'QUEUED', label: 'Queued in Processing Pipeline' },
@@ -148,8 +152,14 @@ export const ProcessingPage: React.FC = () => {
             </h2>
 
             <p className="text-slate-400 text-xs max-w-lg mx-auto leading-relaxed">
-              {job?.message || (job ? 'Executing backend photogrammetry pipeline stages.' : 'Extracting feature keypoints and aligning camera poses...')}
+              {job?.message || (job ? 'Executing backend photogrammetry pipeline stages.' : 'Waiting for the reconstruction job to start...')}
             </p>
+
+            {backendUnreachable && !isCompleted && (
+              <p className="text-amber-300 text-xs font-mono">
+                Cannot reach the backend server. Retrying automatically...
+              </p>
+            )}
 
             {/* Progress Bar & Percentage */}
             <div className="space-y-2 max-w-md mx-auto">

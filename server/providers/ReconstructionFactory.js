@@ -1,10 +1,11 @@
 import { DemoProvider } from './DemoProvider.js';
 import { PolycamProvider } from './PolycamProvider.js';
 import { ColmapProvider } from './ColmapProvider.js';
+import { getEngine } from '../config.js';
 
 export class ReconstructionFactory {
   static getProvider(modeOverride = null) {
-    const mode = (modeOverride || process.env.PHOTOGRAMMETRY_ENGINE || process.env.RECONSTRUCTION_ENGINE || 'demo').toLowerCase();
+    const mode = (modeOverride || getEngine()).toLowerCase();
 
     if (mode === 'colmap') {
       const colmap = new ColmapProvider();

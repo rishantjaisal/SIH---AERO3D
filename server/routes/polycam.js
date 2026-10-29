@@ -1,12 +1,13 @@
 import express from 'express';
 import { PolycamProvider } from '../providers/PolycamProvider.js';
 import { DemoProvider } from '../providers/DemoProvider.js';
+import { getEngine } from '../config.js';
 
 const router = express.Router();
 
 function getActiveProvider() {
   const polycam = new PolycamProvider();
-  if (process.env.RECONSTRUCTION_PROVIDER === 'polycam' && polycam.isConfigured()) {
+  if (getEngine() === 'polycam' && polycam.isConfigured()) {
     return { provider: polycam, mode: 'polycam' };
   }
   return { provider: new DemoProvider(), mode: 'demo' };

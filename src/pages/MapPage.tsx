@@ -44,6 +44,7 @@ export const MapPage: React.FC = () => {
               scaleFactor={scaleFactor}
               isCalibrated={isCalibrated}
               projectId={currentProj?.id || 'demo-proj-001'}
+              modelUrl={currentProj?.model_url || `/api/projects/${currentProj?.id || 'demo-proj-001'}/model`}
               project={currentProj}
             />
           </div>
