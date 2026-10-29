@@ -35,6 +35,12 @@ export const api = {
       await axios.delete(`${API_BASE}/projects/${encodeURIComponent(id)}`);
       return { ok: true, backendReachable: true };
     } catch (err: any) {
+      const status = err?.response?.status;
+      // 404/405/501 on /api means no API server handles this route (e.g. static hosting such as Netlify):
+      // there is no server-side copy to remove, so treat it like an unreachable backend.
+      if (status === 404 || status === 405 || status === 501) {
+        return { ok: true, backendReachable: false };
+      }
       if (err?.response) {
         // The backend answered with an error: do not pretend the server data was removed
         return { ok: false, backendReachable: true, message: err.response.data?.message || `Server error ${err.response.status}` };
