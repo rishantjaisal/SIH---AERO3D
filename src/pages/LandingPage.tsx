@@ -9,11 +9,12 @@ import '../styles/landing.css';
 const LandingScene = lazy(() => import('../components/landing/LandingScene').then(m => ({ default: m.LandingScene })));
 
 const STAGES = ['Orbit', 'Capture', 'Reconstruct', 'Analyse', 'Deliver'];
+// Illustrative annotations only: they show what the analysis layer would label, not real detections.
 const TAGS: Array<{ name: string; meta: string; amber?: boolean }> = [
-  { name: 'High-rise', meta: 'structure · 0.97' },
-  { name: 'Dome', meta: 'roof · 0.94', amber: true },
-  { name: 'Road corridor', meta: 'pavement · 0.91' },
-  { name: 'Residential blocks', meta: 'buildings · 0.95' }
+  { name: 'Highest point', meta: 'sample label' },
+  { name: 'Roof surface', meta: 'sample label', amber: true },
+  { name: 'Ground / paving', meta: 'sample label' },
+  { name: 'Vegetation', meta: 'sample label' }
 ];
 
 const fmt = (n: number) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(Math.round(n)));

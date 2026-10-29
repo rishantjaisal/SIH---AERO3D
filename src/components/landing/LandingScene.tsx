@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { story, sm, clamp, prefersReducedMotion } from './story';
-import { resolveHeroModelUrl, FALLBACK_MODEL_URL } from './heroModel';
+import { resolveHeroModelUrl, FALLBACK_MODEL_URL, HERO_MODEL_URL } from './heroModel';
 
 /**
  * Scroll-driven hero scene: the project's real photogrammetry model (public/models/hero/hero-building.glb, falling back to public/demo/build.glb) sits on a
@@ -99,6 +99,13 @@ const SiteModel: React.FC<{ shared: Shared; url: string }> = ({ shared, url }) =
 
   const built = useMemo(() => {
     const root = gltf.scene.clone(true);
+    // The drone-scan hero model is Z-up (survey convention); the scene is Y-up.
+    // Then yaw it so the long side runs along X, matching the scan slab and drone path.
+    if (url === HERO_MODEL_URL) {
+      root.rotation.order = 'YXZ';
+      root.rotation.set(-Math.PI / 2, -Math.PI / 2, 0);
+    }
+    root.updateMatrixWorld(true);
     const holder = new THREE.Group();
     holder.add(root);
 
@@ -230,7 +237,7 @@ const SiteModel: React.FC<{ shared: Shared; url: string }> = ({ shared, url }) =
     story.stats = { vertices: vertexCount, triangles: Math.round(triCount), points: P.length / 3 };
 
     return { holder, cloud, heightAt, top };
-  }, [gltf, gl, shared]);
+  }, [gltf, gl, shared, url]);
 
   // Tag anchors on notable parts of the site (positions are in world units, relative to the model centre)
   useEffect(() => {
