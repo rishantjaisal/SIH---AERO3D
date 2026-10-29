@@ -30,6 +30,19 @@ export const api = {
     }
   },
 
+  async deleteProject(id: string): Promise<{ ok: boolean; backendReachable: boolean; message?: string }> {
+    try {
+      await axios.delete(`${API_BASE}/projects/${encodeURIComponent(id)}`);
+      return { ok: true, backendReachable: true };
+    } catch (err: any) {
+      if (err?.response) {
+        // The backend answered with an error: do not pretend the server data was removed
+        return { ok: false, backendReachable: true, message: err.response.data?.message || `Server error ${err.response.status}` };
+      }
+      return { ok: true, backendReachable: false };
+    }
+  },
+
   async getProject(id: string): Promise<Project | null> {
     try {
       const res = await axios.get(`${API_BASE}/projects/${id}`);

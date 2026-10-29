@@ -107,19 +107,19 @@ export const ReportsPage: React.FC = () => {
               <div className="grid grid-cols-4 gap-3 font-mono text-xs text-center">
                 <div className="p-3 rounded bg-aerospace-950 print:bg-slate-100 border border-slate-800 print:border-slate-300">
                   <span className="text-[10px] text-slate-500 block">VERTICES</span>
-                  <span className="font-bold text-sm">{(currentProj?.metadata?.vertices || 48520).toLocaleString()}</span>
+                  <span className="font-bold text-sm">{currentProj?.metadata?.vertices ? currentProj.metadata.vertices.toLocaleString() : 'Not available'}</span>
                 </div>
                 <div className="p-3 rounded bg-aerospace-950 print:bg-slate-100 border border-slate-800 print:border-slate-300">
                   <span className="text-[10px] text-slate-500 block">POLYGON FACES</span>
-                  <span className="font-bold text-sm">{(currentProj?.metadata?.faces || 92400).toLocaleString()}</span>
+                  <span className="font-bold text-sm">{currentProj?.metadata?.faces ? currentProj.metadata.faces.toLocaleString() : 'Not available'}</span>
                 </div>
                 <div className="p-3 rounded bg-aerospace-950 print:bg-slate-100 border border-slate-800 print:border-slate-300">
                   <span className="text-[10px] text-slate-500 block">SURFACE AREA</span>
-                  <span className="font-bold text-sm text-sky-300 print:text-sky-700">{currentProj?.metadata?.estimatedArea || 855.6} m²</span>
+                  <span className="font-bold text-sm text-sky-300 print:text-sky-700">{currentProj?.metadata?.estimatedArea ? `${currentProj.metadata.estimatedArea} m²` : 'Not available'}</span>
                 </div>
                 <div className="p-3 rounded bg-aerospace-950 print:bg-slate-100 border border-slate-800 print:border-slate-300">
                   <span className="text-[10px] text-slate-500 block">HEIGHT DELTA</span>
-                  <span className="font-bold text-sm text-sky-300 print:text-sky-700">{currentProj?.metadata?.estimatedHeight || 18.2} m</span>
+                  <span className="font-bold text-sm text-sky-300 print:text-sky-700">{currentProj?.metadata?.estimatedHeight ? `${currentProj.metadata.estimatedHeight} m` : 'Not available'}</span>
                 </div>
               </div>
             </div>

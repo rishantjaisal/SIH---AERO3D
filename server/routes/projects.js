@@ -92,6 +92,28 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// DELETE /api/projects/:id - remove only this project's own storage folder (never shared demo assets)
+router.delete('/:id', (req, res) => {
+  try {
+    const projectId = req.params.id;
+    const projectsRoot = path.resolve(process.cwd(), 'storage', 'projects');
+    const projectDir = path.resolve(projectsRoot, projectId);
+
+    if (path.dirname(projectDir) !== projectsRoot) {
+      return res.status(400).json({ error: true, message: 'Invalid project id.' });
+    }
+
+    let removedFiles = false;
+    if (fs.existsSync(projectDir)) {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+      removedFiles = true;
+    }
+    res.json({ success: true, id: projectId, removedFiles });
+  } catch (error) {
+    res.status(500).json({ error: true, message: error.message });
+  }
+});
+
 // GET /api/projects/:id/model - Binary GLB stream endpoint
 router.get('/:id/model', (req, res) => {
   const projectId = req.params.id;

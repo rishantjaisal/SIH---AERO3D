@@ -71,7 +71,7 @@ export const DigitalTwinPage: React.FC = () => {
 
             <div className="space-y-2">
               {[
-                { key: 'building', label: 'Building Mesh Structure', count: `${(currentProj?.metadata?.vertices || 48520).toLocaleString()} Verts` },
+                { key: 'building', label: 'Building Mesh Structure', count: currentProj?.metadata?.vertices ? `${currentProj.metadata.vertices.toLocaleString()} Verts` : 'Not available' },
                 { key: 'roads', label: 'Access Roads & Parking', count: '3 Segments' },
                 { key: 'vegetation', label: 'Vegetation Canopy', count: '5 Clusters' },
                 { key: 'inspectionMarkers', label: 'Inspection Issue Markers', count: `${markers.length} Pins` },

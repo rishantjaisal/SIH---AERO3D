@@ -17,6 +17,7 @@ import {
 import { Sidebar } from '../components/layout/Sidebar';
 import { Topbar } from '../components/layout/Topbar';
 import { useProjects } from '../store/ProjectContext';
+import { DeleteProjectButton } from '../components/DeleteProjectButton';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -171,18 +172,18 @@ export const Dashboard: React.FC = () => {
                       <td className="p-3.5 text-slate-300">
                         <div className="flex items-center gap-1 text-slate-400">
                           <MapPin className="w-3.5 h-3.5 text-slate-500" />
-                          <span>{proj.metadata?.locationName || 'Delhi NCR, India'}</span>
+                          <span>{proj.metadata?.locationName || 'Not specified'}</span>
                         </div>
                       </td>
                       <td className="p-3.5 font-mono text-[11px] text-slate-300">
-                        {proj.metadata?.vertices?.toLocaleString() || '48,520'} Verts / {proj.metadata?.faces?.toLocaleString() || '92,400'} Faces
+                        {proj.metadata?.vertices && proj.metadata?.faces ? `${proj.metadata.vertices.toLocaleString()} Verts / ${proj.metadata.faces.toLocaleString()} Faces` : 'Not available'}
                       </td>
                       <td className="p-3.5">
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                           {proj.status || 'SUCCEEDED'}
                         </span>
                       </td>
-                      <td className="p-3.5 font-mono text-slate-400">{proj.metadata?.surveyDate || '2026-08-28'}</td>
+                      <td className="p-3.5 font-mono text-slate-400">{proj.metadata?.surveyDate || (proj.created_at ? proj.created_at.slice(0, 10) : '—')}</td>
                       <td className="p-3.5 text-right space-x-2">
                         <button
                           onClick={() => handleOpenProject(proj)}
@@ -196,6 +197,7 @@ export const Dashboard: React.FC = () => {
                         >
                           AI Detections
                         </Link>
+                        <DeleteProjectButton project={proj} compact />
                       </td>
                     </tr>
                   ))}

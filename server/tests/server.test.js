@@ -65,3 +65,40 @@ test('validateMediaFile rejects unsupported extensions', () => {
   assert.equal(validateMediaFile(undefined, 'flight.MP4', 0).isVideo, true);
   assert.equal(validateMediaFile(undefined, 'photo.jpg', 0).isImage, true);
 });
+
+test('DELETE /api/projects/:id removes only that project folder and rejects bad ids', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const os = await import('node:os');
+  const express = (await import('express')).default;
+  const { default: router } = await import('../routes/projects.js');
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'aero3d-del-'));
+  const prevCwd = process.cwd();
+  process.chdir(tmp);
+  const mk = id => {
+    const d = path.join(tmp, 'storage', 'projects', id, 'output');
+    fs.mkdirSync(d, { recursive: true });
+    fs.writeFileSync(path.join(d, 'model.glb'), 'x');
+  };
+  mk('aero-a');
+  mk('aero-b');
+
+  const app = express();
+  app.use('/api/projects', router);
+  const server = app.listen(0);
+  const base = `http://127.0.0.1:${server.address().port}/api/projects`;
+  try {
+    const ok = await fetch(`${base}/aero-a`, { method: 'DELETE' });
+    assert.equal(ok.status, 200);
+    assert.equal(fs.existsSync(path.join(tmp, 'storage', 'projects', 'aero-a')), false);
+    assert.equal(fs.existsSync(path.join(tmp, 'storage', 'projects', 'aero-b')), true);
+
+    const bad = await fetch(`${base}/..%2F..`, { method: 'DELETE' });
+    assert.equal(bad.status, 400);
+  } finally {
+    server.close();
+    process.chdir(prevCwd);
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});

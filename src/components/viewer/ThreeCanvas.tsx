@@ -114,10 +114,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     }
   }, [onMetricsUpdate]);
 
-  // Reset measurements active points & model metrics when projectId or modelUrl changes
+  // Reset pending measurement points when projectId or modelUrl changes.
+  // (Model metrics are not reset here: this component is keyed per project/model, and a cached model can
+  // report its metrics before this effect runs, which would wipe them.)
   useEffect(() => {
     setActivePoints([]);
-    setModelMetrics(null);
   }, [projectId, modelUrl]);
 
   // Automatic Camera Auto-Fit based on actual loaded model size
