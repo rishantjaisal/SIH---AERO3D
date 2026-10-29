@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { story, sm, clamp, prefersReducedMotion } from './story';
-import { resolveHeroModelUrl, FALLBACK_MODEL_URL, HERO_MODEL_URL } from './heroModel';
+import { resolveHeroModelUrl, FALLBACK_MODEL_URL, HERO_MODEL_URL, MOUNTAIN_MODEL_URL, isGlb, SiteId } from './heroModel';
 
 /**
  * Scroll-driven hero scene: the project's real photogrammetry model (public/models/hero/hero-building.glb, falling back to public/demo/build.glb) sits on a
@@ -93,7 +93,7 @@ function makeShared(): Shared {
 /* ------------------------------------------------------------------ */
 /* Photogrammetry model + point cloud + wireframe                      */
 /* ------------------------------------------------------------------ */
-const SiteModel: React.FC<{ shared: Shared; url: string }> = ({ shared, url }) => {
+const SiteModel: React.FC<{ shared: Shared; url: string; site: SiteId }> = ({ shared, url, site }) => {
   const gltf = useGLTF(url);
   const { gl } = useThree();
 
@@ -244,15 +244,33 @@ const SiteModel: React.FC<{ shared: Shared; url: string }> = ({ shared, url }) =
     const { heightAt, top } = built;
     const w = shared.site.w;
     const d = shared.site.d;
-    const spots: Array<[number, number]> = [
-      [top.x, top.z], // high-rise
-      [w * 0.33, -d * 0.45], // dome
-      [-w * 0.06, d * 0.02], // road corridor
-      [-w * 0.4, -d * 0.05] // residential blocks
-    ];
+    const spots: Array<[number, number]> =
+      site === 'mountain'
+        ? [
+            [top.x, top.z], // highest peak
+            [top.x + w * 0.12, top.z + d * 0.1], // rock face
+            [-w * 0.15, d * 0.3], // valley floor
+            [w * 0.25, d * 0.3] // lower slope
+          ]
+        : [
+            [top.x, top.z], // high-rise
+            [w * 0.33, -d * 0.45], // dome
+            [-w * 0.06, d * 0.02], // road corridor
+            [-w * 0.4, -d * 0.05] // residential blocks
+          ];
     shared.tag = spots.map(([x, z], i) => v3(x, heightAt(x, z) + (i === 0 ? 0 : 1.5), z));
     shared.ready = true;
     story.ready = true;
+  }, [built, shared, site]);
+
+  // Free what this component created. Geometries/textures belong to the cached GLTF and are kept for a fast switch back.
+  useEffect(() => {
+    return () => {
+      built.cloud.geometry.dispose();
+      (built.cloud.material as THREE.Material).dispose();
+      shared.wireMat?.dispose();
+      shared.solidMats.forEach(m => m.dispose());
+    };
   }, [built, shared]);
 
   return (
@@ -663,7 +681,7 @@ const Drone: React.FC<{ shared: Shared }> = ({ shared }) => {
 /* ------------------------------------------------------------------ */
 /* Measurement lines + detection brackets (analysis stage)             */
 /* ------------------------------------------------------------------ */
-const Analysis: React.FC<{ shared: Shared }> = ({ shared }) => {
+const Analysis: React.FC<{ shared: Shared; showBoxes?: boolean }> = ({ shared, showBoxes = true }) => {
   const heightLine = useRef<THREE.Line>(null);
   const spanLine = useRef<THREE.Line>(null);
   const caps = useRef<THREE.Group>(null);
@@ -755,7 +773,7 @@ const Analysis: React.FC<{ shared: Shared }> = ({ shared }) => {
       });
     }
     if (boxes.current) {
-      boxes.current.visible = w > 0.01;
+      boxes.current.visible = showBoxes && w > 0.01;
       boxes.current.children.forEach(c => {
         const ls = c as THREE.LineSegments;
         (ls.material as THREE.LineBasicMaterial).opacity = 0.9 * w * (0.75 + 0.25 * Math.sin(t * 2.4 + c.id));
@@ -997,15 +1015,52 @@ class SceneBoundary extends React.Component<{ onError: () => void; children: Rea
   }
 }
 
-export const LandingScene: React.FC<{ onError: () => void; active?: boolean }> = ({ onError, active = true }) => {
+export const LandingScene: React.FC<{
+  onError: () => void;
+  active?: boolean;
+  site?: SiteId;
+  onSiteStatus?: (s: 'loading' | 'ready' | 'error') => void;
+}> = ({ onError, active = true, site = 'flatroof', onSiteStatus }) => {
   const shared = useMemo(makeShared, []);
   const mobile = typeof window !== 'undefined' && window.innerWidth < 820;
   const [modelUrl, setModelUrl] = React.useState<string | null>(null);
+  const status = React.useRef(onSiteStatus);
+  status.current = onSiteStatus;
   useEffect(() => {
     let alive = true;
-    resolveHeroModelUrl().then(u => { if (alive) setModelUrl(u); });
+    // New site: replay the scan intro and wait for the new model before reporting ready
+    shared.ready = false;
+    shared.introAt = 0;
+    story.ready = false;
+    story.intro = 0;
+    status.current?.('loading');
+    (async () => {
+      let url: string;
+      if (site === 'mountain') {
+        url = (await isGlb(MOUNTAIN_MODEL_URL)) ? MOUNTAIN_MODEL_URL : '';
+        if (!url) {
+          console.warn('[Aero3D landing] Mountain model missing or not a GLB:', MOUNTAIN_MODEL_URL);
+          if (alive) status.current?.('error');
+          url = await resolveHeroModelUrl();
+        }
+      } else {
+        url = await resolveHeroModelUrl();
+      }
+      if (alive) setModelUrl(url);
+    })();
     return () => { alive = false; };
-  }, []);
+  }, [site, shared]);
+  const siteLoaded = !!modelUrl && (site === 'mountain' ? modelUrl === MOUNTAIN_MODEL_URL : modelUrl !== MOUNTAIN_MODEL_URL);
+  useEffect(() => {
+    if (!siteLoaded) return;
+    const id = window.setInterval(() => {
+      if (story.ready) {
+        status.current?.('ready');
+        window.clearInterval(id);
+      }
+    }, 150);
+    return () => window.clearInterval(id);
+  }, [siteLoaded, modelUrl]);
 
   return (
     <SceneBoundary onError={onError}>
@@ -1025,10 +1080,10 @@ export const LandingScene: React.FC<{ onError: () => void; active?: boolean }> =
         <Stage shared={shared} />
         <ScanSlab shared={shared} />
         <Suspense fallback={null}>
-          {modelUrl && <SiteModel shared={shared} url={modelUrl} />}
+          {siteLoaded && <SiteModel key={modelUrl} shared={shared} url={modelUrl!} site={modelUrl === MOUNTAIN_MODEL_URL ? 'mountain' : 'flatroof'} />}
         </Suspense>
         <Drone shared={shared} />
-        <Analysis shared={shared} />
+        <Analysis shared={shared} showBoxes={modelUrl !== MOUNTAIN_MODEL_URL} />
         <Director shared={shared} />
       </Canvas>
     </SceneBoundary>
