@@ -48,7 +48,7 @@ const Dimension: React.FC<{
       {showLabel && text && (
         <Html position={mid} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
           <div
-            className="px-2 py-0.5 rounded font-mono text-[11px] font-bold whitespace-nowrap select-none pointer-events-none shadow-lg"
+            className="px-2 py-0.5 rounded font-mono text-xs font-bold whitespace-nowrap select-none pointer-events-none shadow-lg"
             style={{ background: 'rgba(6,9,19,0.88)', border: `1px solid ${color}`, color }}
           >
             {tag}: {text}

@@ -130,7 +130,7 @@ export const ProcessingPage: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         <Topbar title="Reconstruction Pipeline Status" />
 
-        <main className="p-6 max-w-3xl mx-auto w-full space-y-6 my-auto">
+        <main id="main-content" className="p-6 max-w-3xl mx-auto w-full space-y-6 my-auto">
           
           {/* Main Status Card */}
           <div className="p-8 rounded-2xl glass-panel-elevated border border-slate-700/80 shadow-2xl space-y-6 text-center">
@@ -141,7 +141,7 @@ export const ProcessingPage: React.FC = () => {
               <span>RECONSTRUCTION ENGINE: {(job?.reconstructionEngine || providerStatus?.mode || 'demo').toUpperCase()}</span>
             </div>
 
-            <h2 className="text-2xl font-extrabold text-slate-100">
+            <h2 className="text-2xl font-extrabold text-slate-100" aria-live="polite">
               {isCompleted
                 ? (job?.reconstructionEngine === 'demo' || currentProject?.isDemo ? 'DEMO MODE — Sample Photogrammetry Model Ready' : '3D Reconstruction Completed')
                 : isFailed
@@ -153,6 +153,11 @@ export const ProcessingPage: React.FC = () => {
 
             <p className="text-slate-400 text-xs max-w-lg mx-auto leading-relaxed">
               {job?.message || (job ? 'Executing backend photogrammetry pipeline stages.' : 'Waiting for the reconstruction job to start...')}
+            </p>
+
+            <p className="text-slate-400 text-xs max-w-lg mx-auto leading-relaxed border-t border-slate-800 pt-4">
+              Progress here comes from the backend job, not an animation. The demo engine does not reconstruct uploaded footage:
+              it completes immediately if a .glb is present, otherwise it extracts frames and reports that no engine is available.
             </p>
 
             {backendUnreachable && !isCompleted && (
@@ -183,7 +188,7 @@ export const ProcessingPage: React.FC = () => {
                 />
               </div>
 
-              <div className="flex justify-between text-[10px] font-mono text-slate-500">
+              <div className="flex justify-between text-xs font-mono text-slate-400">
                 <span>Elapsed: {elapsed}s</span>
                 <span>Stage: {job?.stageLabel || (isCompleted ? 'Completed' : 'Processing')}</span>
               </div>
@@ -233,7 +238,7 @@ export const ProcessingPage: React.FC = () => {
                       ) : (
                         <span className="w-4 h-4 rounded-full border border-slate-700 shrink-0" />
                       )}
-                      <span className={isDone ? 'text-slate-200 font-medium' : isCurrent ? 'text-sky-300 font-semibold' : 'text-slate-500'}>
+                      <span className={isDone ? 'text-slate-200 font-medium' : isCurrent ? 'text-sky-300 font-semibold' : 'text-slate-400'}>
                         {stepItem.label}
                       </span>
                     </div>

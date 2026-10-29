@@ -66,7 +66,7 @@ export const DigitalTwinPage: React.FC = () => {
           <div className="w-72 bg-aerospace-900/95 border-l border-slate-800 p-4 space-y-4 font-sans text-xs backdrop-blur-md z-20">
             <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
               <Layers className="w-4 h-4 text-sky-400" />
-              <h3 className="font-bold text-slate-100 font-mono">COMMAND LAYERS</h3>
+              <h3 className="font-bold text-slate-100">COMMAND LAYERS</h3>
             </div>
 
             <div className="space-y-2">
@@ -84,25 +84,25 @@ export const DigitalTwinPage: React.FC = () => {
                     key={item.key}
                     onClick={() => toggleLayer(item.key as any)}
                     className={`w-full flex items-center justify-between p-2.5 rounded-lg border text-left transition-all ${
-                      isChecked ? 'bg-sky-500/10 border-sky-500/30 text-slate-200' : 'bg-aerospace-950 border-slate-800 text-slate-500'
+                      isChecked ? 'bg-sky-500/10 border-sky-500/30 text-slate-200' : 'bg-aerospace-950 border-slate-800 text-slate-400'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
                       {isChecked ? (
                         <CheckSquare className="w-4 h-4 text-sky-400" />
                       ) : (
-                        <Square className="w-4 h-4 text-slate-600" />
+                        <Square className="w-4 h-4 text-slate-400" />
                       )}
                       <span className="font-medium text-xs">{item.label}</span>
                     </div>
-                    <span className="text-[10px] font-mono text-slate-500">{item.count}</span>
+                    <span className="text-xs font-mono text-slate-400">{item.count}</span>
                   </button>
                 );
               })}
             </div>
 
-            <div className="p-3 rounded-lg bg-aerospace-950 border border-slate-800 space-y-1.5 font-mono text-[11px]">
-              <span className="text-slate-500 block uppercase">Mission Telemetry</span>
+            <div className="p-3 rounded-lg bg-aerospace-950 border border-slate-800 space-y-1.5 font-mono text-xs">
+              <span className="text-slate-400 block uppercase">Mission Telemetry</span>
               <div className="flex justify-between text-slate-300">
                 <span>Signal Status:</span>
                 <span className="text-emerald-400 font-bold">OPTIMAL</span>

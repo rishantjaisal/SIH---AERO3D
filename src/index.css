@@ -2,11 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ------------------------------------------------------------------
+   Design tokens. Tailwind utilities remain the primary styling method;
+   these variables document the system and serve plain-CSS consumers.
+   Type scale: display (landing hero) > page title (h1) > section (h2/h3)
+   > body (text-sm) > supporting/metadata (text-xs, never smaller).
+   Mono is reserved for IDs, coordinates and telemetry values.
+------------------------------------------------------------------- */
+:root {
+  --bg-base: #060913;
+  --bg-surface: #0b1120;
+  --bg-raised: #10192e;
+  --border-subtle: #1f3152;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;      /* 4.5:1+ on every surface above */
+  --accent: #38bdf8;          /* primary actions, active states, scan highlights */
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #fb7185;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --control-h: 36px;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+}
+
 @layer base {
   body {
     @apply font-sans bg-aerospace-950 text-slate-100;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+  h1 { font-size: clamp(1.125rem, 1rem + 0.6vw, 1.5rem); }
+
+  /* Visible keyboard focus on every interactive element (WCAG 2.4.7 / 2.4.11) */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  :focus:not(:focus-visible) { outline: none; }
+  select:focus-visible, input:focus-visible, textarea:focus-visible { outline-offset: 0; }
+
+  /* Comfortable touch targets on touch devices (WCAG 2.5.8) */
+  @media (pointer: coarse) {
+    button, [role='button'], select, a.btn { min-height: 40px; }
+  }
+
+  /* Respect reduced-motion: stop decorative animation and smooth scrolling */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
+
+/* Skip link for keyboard users */
+.skip-link {
+  position: absolute; left: 8px; top: -48px; z-index: 100;
+  padding: 8px 14px; border-radius: 8px;
+  background: var(--accent); color: #060913; font-weight: 600;
+}
+.skip-link:focus { top: 8px; }
 
 /* Custom engineering scrollbar */
 ::-webkit-scrollbar {

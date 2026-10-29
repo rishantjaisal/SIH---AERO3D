@@ -79,7 +79,7 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
                 <div className="px-2.5 py-1 rounded bg-aerospace-900/90 border border-emerald-500/50 text-emerald-400 font-mono text-xs font-bold shadow-lg flex flex-col items-center whitespace-nowrap pointer-events-none">
                   <span>{formatLength(meas.value, { calibrated: isCalibrated, scaleFactor, unit }) ?? '—'}</span>
                   {!isCalibrated && (
-                    <span className="text-[8px] text-amber-400 uppercase font-sans">Model units (uncalibrated)</span>
+                    <span className="text-xs text-amber-400 uppercase font-sans">Model units (uncalibrated)</span>
                   )}
                 </div>
               </Html>

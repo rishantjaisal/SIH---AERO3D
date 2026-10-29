@@ -118,8 +118,8 @@ export const PresentationPage: React.FC = () => {
             IT
           </div>
           <div>
-            <h1 className="font-bold text-sm text-slate-100 font-mono tracking-wider">AERO<span className="text-sky-400">3D</span> INTELLIGENCE</h1>
-            <p className="text-[10px] text-slate-400 font-sans">INNOTECH 2026 Presentation Mode</p>
+            <h1 className="font-bold text-sm text-slate-100 tracking-wider">AERO<span className="text-sky-400">3D</span> INTELLIGENCE</h1>
+            <p className="text-xs text-slate-400 font-sans">INNOTECH 2026 Presentation Mode</p>
           </div>
         </div>
 
@@ -139,7 +139,7 @@ export const PresentationPage: React.FC = () => {
       {/* Main Slide Content */}
       <div className="max-w-5xl mx-auto w-full my-auto space-y-6 animate-in fade-in zoom-in-95">
         <div>
-          <span className="text-xs font-mono text-sky-400 uppercase tracking-widest block mb-1">{slide.subtitle}</span>
+          <span className="text-xs font-mono text-sky-400 uppercase tracking-wider block mb-1">{slide.subtitle}</span>
           <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-100">{slide.title}</h2>
         </div>
 
@@ -178,7 +178,7 @@ export const PresentationPage: React.FC = () => {
 
       {/* Bottom Footer Controls */}
       <div className="flex items-center justify-between border-t border-slate-800 pt-4">
-        <div className="text-xs text-slate-500 font-mono">
+        <div className="text-xs text-slate-400 font-mono">
           Slide {currentSlide + 1} of {slides.length}
         </div>
 

@@ -56,7 +56,7 @@ export const ViewerPage: React.FC = () => {
   const [showLabels, setShowLabels] = useState<boolean>(true);
   const [unit, setUnit] = useState<LengthUnit>('m');
   const [cameraPreset, setCameraPreset] = useState<CameraPreset>('default');
-  const [showInfoPanel, setShowInfoPanel] = useState<boolean>(true);
+  const [showInfoPanel, setShowInfoPanel] = useState<boolean>(() => typeof window === 'undefined' || window.innerWidth >= 768);
   const [showCalibrationModal, setShowCalibrationModal] = useState<boolean>(false);
   const [loadedMetricsState, setLoadedMetricsState] = useState<{ projectId: string; metrics: ModelMetrics } | null>(null);
   // Only trust metrics that were reported for the project currently on screen
@@ -156,8 +156,8 @@ export const ViewerPage: React.FC = () => {
               <ArrowLeft className="w-4 h-4" />
             </button>
             <div>
-              <h1 className="font-bold text-sm text-slate-100 font-mono">{currentProj.name}</h1>
-              <p className="text-[10px] text-slate-400">ID: {currentProj.id}</p>
+              <h1 className="font-bold text-sm text-slate-100">{currentProj.name}</h1>
+              <p className="text-xs text-slate-400">ID: {currentProj.id}</p>
             </div>
           </div>
         </header>
@@ -257,21 +257,22 @@ export const ViewerPage: React.FC = () => {
             onClick={() => navigate('/dashboard')}
             className="p-1.5 rounded-lg bg-aerospace-950 text-slate-400 hover:text-slate-200 border border-slate-800 transition-colors"
             title="Return to Dashboard"
+            aria-label="Return to dashboard"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-bold text-sm text-slate-100 font-mono tracking-wide truncate max-w-xs sm:max-w-md">
+              <h1 className="font-bold text-sm text-slate-100 tracking-wide truncate max-w-xs sm:max-w-md">
                 {currentProj.name}
               </h1>
-              <span className={`px-2 py-0.5 rounded text-[10px] font-mono border ${
+              <span className={`px-2 py-0.5 rounded text-xs font-mono border ${
                 isDemoProject ? 'bg-sky-500/20 text-sky-300 border-sky-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
               }`}>
                 {isDemoProject ? 'DEMO SAMPLE MODEL' : 'PROCESSED 3D DIGITAL TWIN'}
               </span>
             </div>
-            <p className="text-[10px] text-slate-400 font-sans">
+            <p className="text-xs text-slate-400 font-sans">
               {currentProj.metadata?.locationName ? `Location: ${currentProj.metadata.locationName}` : 'Survey Location: Unspecified'}
             </p>
           </div>
@@ -300,7 +301,9 @@ export const ViewerPage: React.FC = () => {
             className={`p-2 rounded-lg border text-xs font-medium transition-colors ${
               showInfoPanel ? 'bg-sky-500/20 text-sky-300 border-sky-500/40' : 'bg-aerospace-800 text-slate-300 border-slate-700'
             }`}
-            title="Toggle Model Info Drawer"
+            title="Show or hide the model information panel"
+            aria-label="Toggle model information panel"
+            aria-pressed={showInfoPanel}
           >
             <Layers className="w-4 h-4" />
           </button>
@@ -310,7 +313,9 @@ export const ViewerPage: React.FC = () => {
       {/* Main 3D Canvas Area */}
       <div className="flex-1 flex min-h-0 relative">
         
-        {/* Floating Toolbar Controls */}
+        {/* 3D WebGL Canvas Keyed strictly by projectId & model_url */}
+        <div className="flex-1 h-full relative min-w-0">
+        {/* Floating toolbar lives inside the canvas area so it never covers the info panel */}
         <FloatingToolbar
           activeTool={activeTool}
           setActiveTool={setActiveTool}
@@ -334,8 +339,6 @@ export const ViewerPage: React.FC = () => {
           setUnit={setUnit}
         />
 
-        {/* 3D WebGL Canvas Keyed strictly by projectId & model_url */}
-        <div className="flex-1 h-full relative">
           <ThreeCanvas
             key={`${currentProj.id}-${currentProj.model_url}`}
             activeTool={activeTool}
@@ -377,8 +380,8 @@ export const ViewerPage: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-md glass-panel-elevated p-6 rounded-2xl border border-slate-700 space-y-4 animate-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="font-bold text-sm text-slate-100 font-mono">Add Inspection Marker Pin</h3>
-              <button onClick={() => setPendingMarkerPoint(null)} className="text-slate-400 hover:text-white">
+              <h3 className="font-bold text-sm text-slate-100">Add Inspection Marker Pin</h3>
+              <button onClick={() => setPendingMarkerPoint(null)} aria-label="Close dialog" className="text-slate-400 hover:text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -435,7 +438,7 @@ export const ViewerPage: React.FC = () => {
                 />
               </div>
 
-              <div className="text-[10px] text-slate-500 font-mono">
+              <div className="text-xs text-slate-400 font-mono">
                 Location Point: [{pendingMarkerPoint.map(n => n.toFixed(2)).join(', ')}]
               </div>
 
@@ -464,11 +467,11 @@ export const ViewerPage: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-md glass-panel-elevated p-6 rounded-2xl border border-slate-700 space-y-4 animate-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="font-bold text-sm text-slate-100 font-mono flex items-center gap-2">
+              <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
                 <Scale className="w-4 h-4 text-sky-400" />
                 <span>3D Model Scale Calibration</span>
               </h3>
-              <button onClick={() => setShowCalibrationModal(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setShowCalibrationModal(false)} aria-label="Close dialog" className="text-slate-400 hover:text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -502,7 +505,7 @@ export const ViewerPage: React.FC = () => {
                 />
               </div>
 
-              <div className="p-3 rounded-lg bg-aerospace-950 border border-slate-800 text-[11px] font-mono text-sky-400">
+              <div className="p-3 rounded-lg bg-aerospace-950 border border-slate-800 text-xs font-mono text-sky-400">
                 Calculated Scale Multiplier: {(parseFloat(calibrationInput.knownDistance) / (parseFloat(calibrationInput.measuredDistance) || 1)).toFixed(4)}
               </div>
 

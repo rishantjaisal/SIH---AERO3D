@@ -31,6 +31,7 @@ export const App: React.FC = () => {
     <ErrorBoundary>
       <ProjectProvider>
         <Router>
+          <a href="#main-content" className="skip-link" onClick={e => { const m = document.getElementById('main-content'); if (m) { e.preventDefault(); m.setAttribute('tabindex', '-1'); m.focus(); } }}>Skip to main content</a>
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route path="/" element={<LandingPage />} />
