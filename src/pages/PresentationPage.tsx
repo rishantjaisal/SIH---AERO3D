@@ -96,13 +96,13 @@ export const PresentationPage: React.FC = () => {
     },
     {
       title: "Impact, Innovation & Future Scope",
-      subtitle: "Smart India Hackathon 2026 Vision",
+      subtitle: "INNOTECH 2026 Vision",
       points: [
         "Infrastructure Impact: Accelerated structural safety audits for smart cities, highways, bridges, and industrial campuses.",
         "Key Innovation: Browser-native 3D WebGL performance with zero plugin requirement + secure API provider abstraction.",
         "Future Scope: Real-time IoT sensor telemetry overlays, AR field inspection headset sync, and thermal drone imaging."
       ],
-      tag: "08 / SIH 2026 IMPACT"
+      tag: "08 / INNOTECH 2026 IMPACT"
     }
   ];
 
@@ -115,11 +115,11 @@ export const PresentationPage: React.FC = () => {
       <div className="flex items-center justify-between border-b border-slate-800 pb-4">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 font-bold font-mono">
-            SIH
+            IT
           </div>
           <div>
             <h1 className="font-bold text-sm text-slate-100 font-mono tracking-wider">AERO<span className="text-sky-400">3D</span> INTELLIGENCE</h1>
-            <p className="text-[10px] text-slate-400 font-sans">Smart India Hackathon 2026 Presentation Mode</p>
+            <p className="text-[10px] text-slate-400 font-sans">INNOTECH 2026 Presentation Mode</p>
           </div>
         </div>
 

@@ -180,7 +180,7 @@ export const LandingPage: React.FC = () => {
             <section className="ln-sec" ref={setSec(0)}>
               <div className="ln-card" style={{ maxWidth: 640 }}>
                 <div className="ln-eyebrow ln-rv" style={{ ['--d' as string]: 0 }}>
-                  <i /> Smart India Hackathon 2026
+                  <i /> INNOTECH 2026
                 </div>
                 <h1 className="ln-display ln-h1 mt-5">
                   <span className="ln-rv block" style={{ ['--d' as string]: 1 }}>One drone flight.</span>
@@ -319,7 +319,7 @@ export const LandingPage: React.FC = () => {
         <footer className="border-t border-slate-800/80 bg-aerospace-950 py-8 text-center text-xs text-slate-500 font-mono">
           <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
-              <span className="text-slate-300 font-bold">Aero3D Intelligence</span> © 2026 — Smart India Hackathon Project
+              <span className="text-slate-300 font-bold">Aero3D Intelligence</span> © 2026 — INNOTECH Project
             </div>
             <div className="flex items-center gap-4 text-slate-400">
               <Link to="/presentation" className="hover:text-sky-300">Presentation Mode</Link>

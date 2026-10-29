@@ -97,10 +97,10 @@ export const Sidebar: React.FC = () => {
 
         <div className="flex items-center gap-2.5 p-2 rounded-lg bg-aerospace-850 border border-slate-800 text-xs">
           <div className="w-7 h-7 rounded-full bg-indigo-600/30 text-indigo-300 flex items-center justify-center font-bold font-mono">
-            SIH
+            IT
           </div>
           <div className="truncate flex-1">
-            <p className="font-semibold text-slate-200 text-[11px] truncate">SIH 2026 Evaluator</p>
+            <p className="font-semibold text-slate-200 text-[11px] truncate">INNOTECH 2026 Evaluator</p>
             <p className="text-[10px] text-slate-400 truncate">Aero3D Drone Twin</p>
           </div>
         </div>
