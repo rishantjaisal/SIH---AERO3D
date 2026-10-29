@@ -2,11 +2,14 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { ReconstructionFactory } from '../providers/ReconstructionFactory.js';
 import { jobManager } from '../services/JobManager.js';
 import { validateMediaFile, extractFramesFromVideo, isFFmpegAvailable } from '../utils/ffmpegExtractor.js';
 import { ColmapProvider } from '../providers/ColmapProvider.js';
+import { PolycamProvider } from '../providers/PolycamProvider.js';
 import { getEngine, getFrameRate, isValidProjectId } from '../config.js';
+import { ProjectStore, isReservedProjectId } from '../services/ProjectStore.js';
 
 const router = express.Router();
 
@@ -44,6 +47,10 @@ const storage = multer.diskStorage({
   }
 });
 
+// Only formats the pipeline can really consume. (.zip/.obj/.ply/.gltf are not processed, so they are rejected up front
+// instead of being accepted and silently ignored.)
+const SUPPORTED_EXTS = ['.mp4', '.mov', '.mkv', '.jpg', '.jpeg', '.png', '.glb'];
+
 const upload = multer({
   storage,
   limits: { fileSize: 250 * 1024 * 1024, files: 50 }, // 250MB per file, 50 files
@@ -51,6 +58,10 @@ const upload = multer({
     try {
       // Size is enforced by multer's `limits`; here we check the extension.
       validateMediaFile(file.path, file.originalname, 0);
+      const ext = path.extname(file.originalname).toLowerCase();
+      if (!SUPPORTED_EXTS.includes(ext)) {
+        throw new Error(`${ext || 'This'} files are not supported yet. Supported: ${SUPPORTED_EXTS.join(', ')}`);
+      }
       cb(null, true);
     } catch (err) {
       const rejection = new Error(err.message);
@@ -88,7 +99,8 @@ router.get('/:id', async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(404).json({ error: true, message: 'Project not found' });
+    const status = error.status === 404 || !error.status ? 404 : error.status;
+    res.status(status).json({ error: true, message: status === 404 ? 'Project not found' : error.message });
   }
 });
 
@@ -103,12 +115,13 @@ router.delete('/:id', (req, res) => {
       return res.status(400).json({ error: true, message: 'Invalid project id.' });
     }
 
-    let removedFiles = false;
-    if (fs.existsSync(projectDir)) {
-      fs.rmSync(projectDir, { recursive: true, force: true });
-      removedFiles = true;
+    if (jobManager.getActiveJobByProject(projectId)) {
+      return res.status(409).json({ error: true, message: 'A reconstruction job is still running for this project. Wait for it to finish.' });
     }
-    res.json({ success: true, id: projectId, removedFiles });
+
+    const removedFiles = ProjectStore.remove(projectId);
+    const removedJobs = jobManager.deleteByProject(projectId);
+    res.json({ success: true, id: projectId, removedFiles, removedJobs });
   } catch (error) {
     res.status(500).json({ error: true, message: error.message });
   }
@@ -118,11 +131,14 @@ router.delete('/:id', (req, res) => {
 router.get('/:id/model', (req, res) => {
   const projectId = req.params.id;
 
-  // Set permissive CORS and cross-origin policy headers for WebGL loaders across all devices
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Cross-origin policy for WebGL loaders; CORS itself follows CORS_ORIGIN (no wildcard for user uploads)
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.setHeader('Content-Type', 'model/gltf-binary');
-  res.setHeader('Cache-Control', 'public, max-age=86400');
+
+  const sendModel = file => {
+    res.setHeader('Content-Type', 'model/gltf-binary');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    return res.sendFile(file);
+  };
 
   const projectStorageDir = path.join(process.cwd(), 'storage', 'projects', projectId);
   const customModelPath = path.join(projectStorageDir, 'output', 'model.glb');
@@ -132,18 +148,18 @@ router.get('/:id/model', (req, res) => {
 
   // 1. If project has explicit generated/uploaded model.glb in output folder, serve it
   if (fs.existsSync(customModelPath)) {
-    return res.sendFile(customModelPath);
+    return sendModel(customModelPath);
   }
 
   // 2. Specific demo project ID routes
   if (projectId === 'demo-proj-001' && fs.existsSync(demoBuildingPath)) {
-    return res.sendFile(demoBuildingPath);
+    return sendModel(demoBuildingPath);
   }
   if (projectId === 'demo-proj-002' && fs.existsSync(tajMahalPath)) {
-    return res.sendFile(tajMahalPath);
+    return sendModel(tajMahalPath);
   }
   if (projectId === 'demo-proj-003' && fs.existsSync(ruinedCityPath)) {
-    return res.sendFile(ruinedCityPath);
+    return sendModel(ruinedCityPath);
   }
 
   // 3. For any other real project with no output model.glb, return 404. DO NOT copy/serve fake fallback build.glb!
@@ -152,20 +168,30 @@ router.get('/:id/model', (req, res) => {
 
 // POST /api/projects/upload & /api/projects/:projectId/upload
 const handleUploadRoute = async (req, res) => {
+  const files = req.files || [];
+  const dropTempFiles = () => files.forEach(f => fs.rmSync(f.path, { force: true }));
+  let createdDir = null;
+
   try {
-    const projectId = req.params.projectId || req.body.projectId || `aero-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const projectId = req.params.projectId || req.body.projectId || `aero-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
     const metadata = req.body || {};
-    const files = req.files || [];
 
     if (!isValidProjectId(projectId)) {
-      files.forEach(f => fs.rmSync(f.path, { force: true }));
+      dropTempFiles();
       return res.status(400).json({ error: true, message: 'Invalid project id.' });
+    }
+
+    // The bundled samples are shared by everyone; uploads must never write into them (the model route prefers
+    // an uploaded output/model.glb over the sample, so this would replace the sample for all users).
+    if (isReservedProjectId(projectId)) {
+      dropTempFiles();
+      return res.status(403).json({ error: true, message: 'This project id is reserved for a bundled sample project.' });
     }
 
     if (files.length === 0) {
       return res.status(400).json({
         error: true,
-        message: 'Please upload at least one drone video, image, image archive, or 3D model.'
+        message: 'Please upload at least one drone video, image, or .glb 3D model.'
       });
     }
 
@@ -174,11 +200,12 @@ const handleUploadRoute = async (req, res) => {
     const framesDir = path.join(projectStorageDir, 'frames');
     const outputDir = path.join(projectStorageDir, 'output');
 
+    if (!fs.existsSync(projectStorageDir)) createdDir = projectStorageDir;
     [projectStorageDir, inputDir, framesDir, outputDir].forEach(d => {
       if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
     });
 
-    let uploadedGlbFile = null;
+    let uploadedGlbName = null;
     let primaryVideoFile = null;
 
     files.forEach(file => {
@@ -187,238 +214,166 @@ const handleUploadRoute = async (req, res) => {
       const destPath = path.join(inputDir, cleanName);
       fs.copyFileSync(file.path, destPath);
 
-      if (['.glb', '.gltf'].includes(ext)) {
-        uploadedGlbFile = file;
+      if (ext === '.glb') {
+        uploadedGlbName = file.originalname;
         fs.copyFileSync(file.path, path.join(outputDir, 'model.glb'));
       } else if (['.mp4', '.mov', '.mkv'].includes(ext)) {
         primaryVideoFile = destPath;
       } else if (['.jpg', '.jpeg', '.png'].includes(ext)) {
         fs.copyFileSync(file.path, path.join(framesDir, cleanName));
       }
-
-      // The temp upload copy is no longer needed once it lives in the project folder
-      fs.rmSync(file.path, { force: true });
     });
+    dropTempFiles(); // the temp copies now live in the project folder
 
-    const isGlbModel = !!uploadedGlbFile;
+    const isGlbModel = !!uploadedGlbName;
     const isVideo = !!primaryVideoFile;
 
     const gpsLat = parseFloat(metadata.latitude);
     const gpsLng = parseFloat(metadata.longitude);
-    const hasGps = !isNaN(gpsLat) && !isNaN(gpsLng);
+    const hasGps = Number.isFinite(gpsLat) && Number.isFinite(gpsLng) && Math.abs(gpsLat) <= 90 && Math.abs(gpsLng) <= 180;
+    const clip = v => String(v ?? '').slice(0, 200);
 
     const provider = ReconstructionFactory.getProvider();
     const newProject = await provider.createCapture({
       projectId,
-      name: metadata.projectName || (isGlbModel ? 'Uploaded 3D Model' : isVideo ? 'Drone Flight Video Survey' : 'Drone Photogrammetry Survey'),
-      location: metadata.location || '',
+      name: clip(metadata.projectName) || (isGlbModel ? 'Uploaded 3D Model' : isVideo ? 'Drone Flight Video Survey' : 'Drone Photogrammetry Survey'),
+      location: clip(metadata.location),
       latitude: hasGps ? gpsLat : null,
       longitude: hasGps ? gpsLng : null,
-      gsd: metadata.gsd || '',
-      surveyDate: metadata.surveyDate || new Date().toISOString().split('T')[0],
-      droneModel: metadata.droneModel || '',
-      cameraModel: metadata.cameraModel || '',
-      flightAltitude: metadata.flightAltitude || '',
-      weather: metadata.weather || '',
-      operator: metadata.operator || '',
-      model_url: isGlbModel ? `/api/projects/${projectId}/model` : undefined,
+      gsd: clip(metadata.gsd),
+      surveyDate: clip(metadata.surveyDate) || new Date().toISOString().split('T')[0],
+      droneModel: clip(metadata.droneModel),
+      cameraModel: clip(metadata.cameraModel),
+      flightAltitude: clip(metadata.flightAltitude),
+      weather: clip(metadata.weather),
+      operator: clip(metadata.operator),
+      model_url: `/api/projects/${projectId}/model`,
       fileCount: files.length,
       status: isGlbModel ? 'SUCCEEDED' : 'QUEUED'
     });
 
-    newProject.id = projectId;
-    newProject.status = isGlbModel ? 'SUCCEEDED' : 'QUEUED';
-    newProject.inputType = isGlbModel ? 'model' : isVideo ? 'video' : 'photos';
-    newProject.inputFile = uploadedGlbFile?.originalname || primaryVideoFile || files[0]?.originalname;
-    newProject.metadata.gps = hasGps ? { latitude: gpsLat, longitude: gpsLng } : null;
+    // Persist the input description with the record so it survives restarts
+    const saved = ProjectStore.update(projectId, {
+      status: isGlbModel ? 'SUCCEEDED' : 'QUEUED',
+      inputType: isGlbModel ? 'model' : isVideo ? 'video' : 'photos',
+      inputFile: uploadedGlbName || (primaryVideoFile ? path.basename(primaryVideoFile) : files[0]?.originalname)
+    }) || newProject;
 
     res.status(201).json({
       success: true,
       message: isGlbModel ? '3D GLB model uploaded successfully.' : 'Drone survey files ingested. Project created successfully.',
-      project: newProject,
+      project: saved,
       filesUploaded: files.map(f => f.filename)
     });
   } catch (error) {
-    res.status(500).json({ error: true, message: error.message });
+    dropTempFiles();
+    if (createdDir) fs.rmSync(createdDir, { recursive: true, force: true });
+    res.status(error.status || 500).json({ error: true, message: error.message });
   }
 };
 
 router.post('/upload', upload.array('files', 50), handleUploadRoute);
 router.post('/:projectId/upload', upload.array('files', 50), handleUploadRoute);
 
-// POST /api/projects/:id/process - Asynchronous photogrammetry job trigger
+/**
+ * Background reconstruction run. Nothing here is simulated: frame extraction really runs FFmpeg, and an engine
+ * that cannot produce a model fails the job with a clear reason instead of reporting a fake success.
+ */
+async function runReconstruction(job, projectId, activeEngine, fps) {
+  const projectDir = path.join(process.cwd(), 'storage', 'projects', projectId);
+  const inputDir = path.join(projectDir, 'input');
+  const framesDir = path.join(projectDir, 'frames');
+  const targetGlb = path.join(projectDir, 'output', 'model.glb');
+
+  const fail = (stage, message, details) => {
+    jobManager.failJob(job.id, stage, message, { message: details });
+    ProjectStore.update(projectId, { status: 'FAILED' });
+  };
+
+  try {
+    ProjectStore.update(projectId, { status: 'PROCESSING' });
+
+    // A model that is already present (e.g. an uploaded .glb) needs no reconstruction
+    if (fs.existsSync(targetGlb)) {
+      jobManager.updateJob(job.id, {
+        status: 'completed', stage: 'COMPLETED', stageLabel: '3D Model Ready', progress: 100,
+        message: 'A 3D model is already available for this project; no reconstruction was needed.'
+      });
+      ProjectStore.update(projectId, { status: 'SUCCEEDED' });
+      return;
+    }
+
+    if (activeEngine === 'colmap' && !new ColmapProvider().isConfigured()) {
+      return fail('ENGINE_UNAVAILABLE',
+        'COLMAP is not available on this machine. Install/configure COLMAP or set PHOTOGRAMMETRY_ENGINE=demo.',
+        'Executable not found at COLMAP_PATH or blocked by OS Device Guard.');
+    }
+    if (activeEngine === 'polycam' && !new PolycamProvider().isConfigured()) {
+      return fail('ENGINE_UNAVAILABLE', 'POLYCAM_API_TOKEN is not configured on the server.', 'Set POLYCAM_API_TOKEN in the server environment.');
+    }
+
+    // Stage 1: real frame extraction (video) or frame counting (photos)
+    let videoPath = null;
+    if (fs.existsSync(inputDir)) {
+      const vid = fs.readdirSync(inputDir).find(f => ['.mp4', '.mov', '.mkv'].includes(path.extname(f).toLowerCase()));
+      if (vid) videoPath = path.join(inputDir, vid);
+    }
+    if (videoPath && !isFFmpegAvailable()) {
+      return fail('FRAME_EXTRACTION', 'FFmpeg is not installed on the server, so video frames cannot be extracted.', 'Install FFmpeg and add it to PATH.');
+    }
+
+    jobManager.updateJob(job.id, {
+      status: 'processing', stage: 'FRAME_EXTRACTION', stageLabel: 'Extracting Video Frames', progress: 20,
+      message: videoPath ? `Extracting frames at ${fps} FPS with FFmpeg...` : 'Counting uploaded photos...'
+    });
+
+    let frameCount = 0;
+    if (videoPath) {
+      frameCount = (await extractFramesFromVideo(videoPath, framesDir, fps)).frameCount;
+    } else if (fs.existsSync(framesDir)) {
+      frameCount = fs.readdirSync(framesDir).filter(f => ['.jpg', '.jpeg', '.png'].includes(path.extname(f).toLowerCase())).length;
+    }
+
+    if (frameCount === 0) {
+      return fail('FRAME_EXTRACTION', 'No usable frames or photos were found for this project.', 'Upload a video or overlapping photos.');
+    }
+
+    jobManager.updateJob(job.id, {
+      stage: 'FRAME_EXTRACTION', progress: 50, message: `${frameCount} frames ready for photogrammetry.`,
+      qualityMetrics: { inputImages: frameCount }
+    });
+
+    // Stage 2: reconstruction. No engine in this build can run it, so say so instead of faking progress.
+    const reason = {
+      colmap: 'COLMAP is installed, but running its reconstruction pipeline from this server is not implemented yet. Frames were extracted successfully.',
+      polycam: 'Submitting frames to Polycam from this server is not implemented yet. Reconstruct in Polycam and upload the resulting .glb.',
+      demo: 'The demo engine does not reconstruct uploaded footage. Upload a .glb model, or configure a real engine (COLMAP / Polycam).'
+    }[activeEngine] || 'This reconstruction engine is not supported.';
+    return fail('RECONSTRUCTION_UNAVAILABLE', reason, `${frameCount} frames were extracted and kept in the project folder.`);
+  } catch (err) {
+    fail('FAILED', err.message || 'Reconstruction pipeline error', 'See server logs for details.');
+  }
+}
+
+// POST /api/projects/:id/process - Asynchronous reconstruction job trigger
 router.post('/:id/process', async (req, res) => {
   const projectId = req.params.id;
+
+  if (isReservedProjectId(projectId)) {
+    return res.status(400).json({ error: true, message: 'Bundled sample projects are already reconstructed.' });
+  }
+  if (!ProjectStore.get(projectId)) {
+    return res.status(404).json({ error: true, message: 'Project not found. Upload files first.' });
+  }
+  const running = jobManager.getActiveJobByProject(projectId);
+  if (running) {
+    return res.status(409).json({ error: true, message: 'A reconstruction job is already running for this project.', jobId: running.id });
+  }
+
   const activeEngine = getEngine();
-  const fps = getFrameRate();
+  const job = jobManager.createJob(projectId, { reconstructionEngine: activeEngine });
 
-  const job = jobManager.createJob(projectId, {
-    reconstructionEngine: activeEngine
-  });
-
-  // Execute background pipeline asynchronously
-  setTimeout(async () => {
-    try {
-      const projectDir = path.join(process.cwd(), 'storage', 'projects', projectId);
-      const inputDir = path.join(projectDir, 'input');
-      const framesDir = path.join(projectDir, 'frames');
-      const outputDir = path.join(projectDir, 'output');
-
-      // Check COLMAP availability if COLMAP engine is active
-      if (activeEngine === 'colmap') {
-        const colmap = new ColmapProvider();
-        if (!colmap.isConfigured()) {
-          jobManager.failJob(
-            job.id,
-            'ENGINE_UNAVAILABLE',
-            'COLMAP is not available on this machine. Install/configure COLMAP or set PHOTOGRAMMETRY_ENGINE=demo in environment settings.',
-            { details: 'Executable not found at COLMAP_PATH or blocked by OS Device Guard.' }
-          );
-          return;
-        }
-      }
-
-      // Check FFmpeg availability for video input
-      let isVideoInput = false;
-      let videoPath = null;
-
-      if (fs.existsSync(inputDir)) {
-        const videoFiles = fs.readdirSync(inputDir).filter(f => ['.mp4', '.mov', '.mkv'].includes(path.extname(f).toLowerCase()));
-        if (videoFiles.length > 0) {
-          isVideoInput = true;
-          videoPath = path.join(inputDir, videoFiles[0]);
-        }
-      }
-
-      if (isVideoInput && !isFFmpegAvailable()) {
-        jobManager.failJob(
-          job.id,
-          'FRAME_EXTRACTION',
-          'FFmpeg is not installed or configured on this machine to extract video frames.',
-          { details: 'Install FFmpeg and add to PATH to enable video frame sampling.' }
-        );
-        return;
-      }
-
-      // Stage 1: FRAME_EXTRACTION
-      jobManager.updateJob(job.id, {
-        status: 'processing',
-        stage: 'FRAME_EXTRACTION',
-        stageLabel: 'Extracting Video Frames',
-        progress: 15,
-        message: `Extracting video frames at ${fps} FPS using FFmpeg...`
-      });
-
-      let frameCount = 0;
-      if (isVideoInput && videoPath) {
-        const extractResult = await extractFramesFromVideo(videoPath, framesDir, fps);
-        frameCount = extractResult.frameCount;
-      } else if (fs.existsSync(framesDir)) {
-        const photoFiles = fs.readdirSync(framesDir).filter(f => ['.jpg', '.jpeg', '.png'].includes(path.extname(f).toLowerCase()));
-        frameCount = photoFiles.length;
-      }
-
-      if (frameCount === 0 && activeEngine !== 'demo') {
-        jobManager.failJob(
-          job.id,
-          'FRAME_EXTRACTION',
-          'No valid frames or images found in dataset for photogrammetry.',
-          { details: 'Provide video or images with sufficient overlap.' }
-        );
-        return;
-      }
-
-      await new Promise(r => setTimeout(r, 1000));
-
-      // Stage 2: FEATURE_EXTRACTION
-      jobManager.updateJob(job.id, {
-        stage: 'FEATURE_EXTRACTION',
-        stageLabel: 'Extracting Feature Keypoints',
-        progress: 30,
-        message: `Extracted ${frameCount || 180} frames. Detecting SIFT feature points...`
-      });
-
-      await new Promise(r => setTimeout(r, 1000));
-
-      // Stage 3: FEATURE_MATCHING
-      jobManager.updateJob(job.id, {
-        stage: 'FEATURE_MATCHING',
-        stageLabel: 'Matching Feature Overlap',
-        progress: 45,
-        message: 'Performing feature matching across overlapping views...'
-      });
-
-      await new Promise(r => setTimeout(r, 1000));
-
-      // Stage 4: SPARSE_RECONSTRUCTION
-      jobManager.updateJob(job.id, {
-        stage: 'SPARSE_RECONSTRUCTION',
-        stageLabel: 'Camera Pose & Sparse Point Cloud',
-        progress: 60,
-        message: 'Estimating camera bundle adjustment and 3D sparse cloud...'
-      });
-
-      await new Promise(r => setTimeout(r, 1000));
-
-      // Stage 5: DENSE_RECONSTRUCTION
-      jobManager.updateJob(job.id, {
-        stage: 'DENSE_RECONSTRUCTION',
-        stageLabel: 'Multi-View Stereo Dense Reconstruction',
-        progress: 75,
-        message: 'Computing depth maps and dense point cloud fusion...'
-      });
-
-      await new Promise(r => setTimeout(r, 1000));
-
-      // Stage 6: MESH_GENERATION & TEXTURE_GENERATION
-      jobManager.updateJob(job.id, {
-        stage: 'MESH_GENERATION',
-        stageLabel: 'Generating 3D Surface Mesh & Texture',
-        progress: 85,
-        message: 'Reconstructing Poisson 3D surface mesh and baking UV textures...'
-      });
-
-      await new Promise(r => setTimeout(r, 1000));
-
-      // Stage 7: GLB_CONVERSION
-      jobManager.updateJob(job.id, {
-        stage: 'GLB_CONVERSION',
-        stageLabel: 'Exporting GLB Digital Twin',
-        progress: 95,
-        message: 'Exporting 3D GLB model output...'
-      });
-
-      await new Promise(r => setTimeout(r, 800));
-
-      const targetGlb = path.join(outputDir, 'model.glb');
-      const finalGlbExists = fs.existsSync(targetGlb);
-      if (!finalGlbExists && activeEngine !== 'demo') {
-        jobManager.failJob(
-          job.id,
-          'GLB_CONVERSION',
-          'Reconstruction pipeline completed but model.glb was not generated.',
-          { details: 'Reconstruction failed to produce a valid 3D mesh asset.' }
-        );
-        return;
-      }
-
-      // Stage 8: COMPLETED
-      jobManager.updateJob(job.id, {
-        status: 'completed',
-        stage: 'COMPLETED',
-        stageLabel: '3D Reconstruction Completed',
-        progress: 100,
-        message: '3D GLB Digital Twin ready for inspection.',
-        qualityMetrics: {
-          inputImages: frameCount,
-          registeredImages: Math.round(frameCount * 0.9),
-          sparsePoints: frameCount * 400
-        }
-      });
-    } catch (err) {
-      jobManager.failJob(job.id, 'FAILED', err.message || 'Reconstruction pipeline error');
-    }
-  }, 10);
+  setImmediate(() => runReconstruction(job, projectId, activeEngine, getFrameRate()));
 
   res.status(202).json({
     success: true,

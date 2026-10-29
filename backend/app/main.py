@@ -2,6 +2,8 @@ import os
 import re
 import shutil
 import asyncio
+import time
+import uuid
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -18,7 +20,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -28,12 +30,17 @@ STORAGE_DIR = os.path.join(os.getcwd(), "storage", "projects")
 os.makedirs(STORAGE_DIR, exist_ok=True)
 
 PROJECT_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
-ALLOWED_UPLOAD_EXTS = {".mp4", ".mov", ".mkv", ".jpg", ".jpeg", ".png", ".zip", ".glb", ".gltf"}
+ALLOWED_UPLOAD_EXTS = {".mp4", ".mov", ".mkv", ".jpg", ".jpeg", ".png", ".glb"}
+MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_MB", "500")) * 1024 * 1024
 DEMO_MODELS = {
     "demo-proj-001": "build.glb",
     "demo-proj-002": "taj_mahal_3d_model.glb",
     "demo-proj-003": "ruined_city_free_5.glb",
 }
+
+
+def is_reserved(project_id: str) -> bool:
+    return project_id in DEMO_MODELS or project_id.startswith("demo-")
 
 
 def validate_project_id(project_id: str) -> str:
@@ -89,8 +96,12 @@ def get_project_model(project_id: str):
 
 @app.post("/api/projects/upload")
 @app.post("/api/projects/{project_id}/upload")
-async def upload_survey_files(project_id: str = "proj-demo", files: list[UploadFile] = File(...)):
+async def upload_survey_files(project_id: str | None = None, files: list[UploadFile] = File(...)):
+    # A fixed default id made every anonymous upload overwrite the previous one
+    project_id = project_id or f"aero-{int(time.time())}-{uuid.uuid4().hex[:6]}"
     validate_project_id(project_id)
+    if is_reserved(project_id):
+        raise HTTPException(status_code=403, detail="This project id is reserved for a bundled sample project")
     for f in files:
         if os.path.splitext(f.filename or "")[1].lower() not in ALLOWED_UPLOAD_EXTS:
             raise HTTPException(status_code=400, detail=f"Unsupported file type: {f.filename}")
@@ -98,106 +109,119 @@ async def upload_survey_files(project_id: str = "proj-demo", files: list[UploadF
     input_dir = os.path.join(proj_dir, "input")
     frames_dir = os.path.join(proj_dir, "frames")
     output_dir = os.path.join(proj_dir, "output")
+    created = not os.path.exists(proj_dir)
 
     for d in [proj_dir, input_dir, frames_dir, output_dir]:
         os.makedirs(d, exist_ok=True)
 
     saved_files = []
-    for file in files:
-        safe_name = os.path.basename(file.filename)
-        file_path = os.path.join(input_dir, safe_name)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        saved_files.append(safe_name)
+    has_model = False
+    try:
+        for file in files:
+            safe_name = re.sub(r"[^a-zA-Z0-9._-]", "_", os.path.basename(file.filename or "file")) or "file"
+            file_path = os.path.join(input_dir, safe_name)
+            written = 0
+            with open(file_path, "wb") as buffer:
+                while chunk := await file.read(1024 * 1024):
+                    written += len(chunk)
+                    if written > MAX_UPLOAD_BYTES:
+                        raise HTTPException(status_code=413, detail=f"{safe_name} is larger than the upload limit")
+                    buffer.write(chunk)
+            saved_files.append(safe_name)
 
-        ext = os.path.splitext(safe_name)[1].lower()
-        if ext in [".glb", ".gltf"]:
-            shutil.copyfile(file_path, os.path.join(output_dir, "model.glb"))
-        elif ext in [".jpg", ".jpeg", ".png"]:
-            shutil.copyfile(file_path, os.path.join(frames_dir, safe_name))
+            ext = os.path.splitext(safe_name)[1].lower()
+            if ext == ".glb":
+                has_model = True
+                shutil.copyfile(file_path, os.path.join(output_dir, "model.glb"))
+            elif ext in [".jpg", ".jpeg", ".png"]:
+                shutil.copyfile(file_path, os.path.join(frames_dir, safe_name))
+    except Exception:
+        if created:
+            shutil.rmtree(proj_dir, ignore_errors=True)
+        raise
 
     return {
         "success": True,
-        "message": "Drone files uploaded successfully to Python backend.",
+        "message": "Files uploaded to Python backend.",
         "project": {
             "id": project_id,
             "name": "Drone Survey",
-            "status": "SUCCEEDED",
+            "status": "SUCCEEDED" if has_model else "QUEUED",
             "model_url": f"/api/projects/{project_id}/model"
         },
         "filesUploaded": saved_files
     }
 
+
+@app.delete("/api/projects/{project_id}")
+def delete_project(project_id: str):
+    validate_project_id(project_id)
+    if is_reserved(project_id):
+        raise HTTPException(status_code=403, detail="Bundled sample projects cannot be deleted")
+    if python_job_manager.get_active_job_by_project(project_id):
+        raise HTTPException(status_code=409, detail="A reconstruction job is running for this project")
+    proj_dir = os.path.join(STORAGE_DIR, project_id)
+    if not os.path.isdir(proj_dir):
+        raise HTTPException(status_code=404, detail="Project not found")
+    shutil.rmtree(proj_dir)
+    python_job_manager.delete_by_project(project_id)
+    return {"success": True, "deleted": project_id}
+
+
 async def run_reconstruction_pipeline(job_id: str, project_id: str):
+    """Honest pipeline: real FFmpeg frame extraction, then a clear failure because no engine here can reconstruct."""
     engine_mode = os.getenv("PHOTOGRAMMETRY_ENGINE", "demo").lower()
+    proj_dir = os.path.join(STORAGE_DIR, project_id)
+    out_glb = os.path.join(proj_dir, "output", "model.glb")
 
-    python_job_manager.update_job(job_id, {
-        "status": "processing",
-        "stage": "FRAME_EXTRACTION",
-        "stageLabel": "Extracting Frames",
-        "progress": 20,
-        "message": "Sampling video frames at 3 FPS..."
-    })
-    await asyncio.sleep(1)
-
-    python_job_manager.update_job(job_id, {
-        "stage": "FEATURE_EXTRACTION",
-        "stageLabel": "Extracting SIFT Feature Points",
-        "progress": 40,
-        "message": "Detecting feature keypoints across extracted views..."
-    })
-    await asyncio.sleep(1)
-
-    if engine_mode == "colmap" and not colmap_engine.is_available():
-        python_job_manager.fail_job(
-            job_id,
-            "SPARSE_RECONSTRUCTION",
-            "Local photogrammetry engine is unavailable on this computer. (COLMAP binary missing or blocked by OS Security/Device Guard)"
-        )
+    if os.path.exists(out_glb):
+        python_job_manager.update_job(job_id, {
+            "status": "completed", "stage": "COMPLETED", "stageLabel": "3D Model Ready", "progress": 100,
+            "message": "A 3D model is already available for this project; no reconstruction was needed."
+        })
         return
 
-    python_job_manager.update_job(job_id, {
-        "stage": "SPARSE_RECONSTRUCTION",
-        "stageLabel": "Sparse Point Cloud Estimation",
-        "progress": 65,
-        "message": "Estimating camera poses and sparse cloud geometry..."
-    })
-    await asyncio.sleep(1)
+    if engine_mode == "colmap" and not colmap_engine.is_available():
+        python_job_manager.fail_job(job_id, "ENGINE_UNAVAILABLE",
+            "COLMAP is not available on this machine (binary missing or blocked by OS security).")
+        return
+
+    input_dir = os.path.join(proj_dir, "input")
+    frames_dir = os.path.join(proj_dir, "frames")
+    video = next((f for f in sorted(os.listdir(input_dir)) if os.path.splitext(f)[1].lower() in (".mp4", ".mov", ".mkv")), None) if os.path.isdir(input_dir) else None
 
     python_job_manager.update_job(job_id, {
-        "stage": "DENSE_RECONSTRUCTION",
-        "stageLabel": "Dense Reconstruction & Mesh Generation",
-        "progress": 85,
-        "message": "Fusing depth maps into 3D Poisson surface mesh..."
+        "status": "processing", "stage": "FRAME_EXTRACTION", "stageLabel": "Extracting Frames", "progress": 20,
+        "message": "Extracting frames with FFmpeg..." if video else "Counting uploaded photos..."
     })
-    await asyncio.sleep(1)
+    try:
+        if video:
+            frame_count = await asyncio.to_thread(extract_frames, os.path.join(input_dir, video), frames_dir)
+        else:
+            frame_count = len([f for f in os.listdir(frames_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]) if os.path.isdir(frames_dir) else 0
+    except Exception as exc:
+        python_job_manager.fail_job(job_id, "FRAME_EXTRACTION", str(exc))
+        return
 
-    # Ensure model.glb exists in project output folder
-    out_glb = os.path.join(STORAGE_DIR, project_id, "output", "model.glb")
-    if not os.path.exists(out_glb):
-        demo_src = os.path.join(os.getcwd(), "public", "demo", "build.glb")
-        if os.path.exists(demo_src):
-            shutil.copyfile(demo_src, out_glb)
+    if frame_count == 0:
+        python_job_manager.fail_job(job_id, "FRAME_EXTRACTION", "No usable frames or photos were found for this project.")
+        return
 
-    python_job_manager.update_job(job_id, {
-        "status": "completed",
-        "stage": "COMPLETED",
-        "stageLabel": "Reconstruction Completed",
-        "progress": 100,
-        "message": "3D Digital Twin ready for inspection.",
-        "qualityMetrics": {
-            "inputImages": 180,
-            "registeredImages": 164,
-            "sparsePoints": 81000,
-            "vertices": 52000,
-            "faces": 98000,
-            "scaleStatus": "uncalibrated"
-        }
-    })
+    python_job_manager.update_job(job_id, {"progress": 50, "message": f"{frame_count} frames ready.", "qualityMetrics": {"inputImages": frame_count}})
+    python_job_manager.fail_job(job_id, "RECONSTRUCTION_UNAVAILABLE",
+        f"{frame_count} frames were extracted, but running a reconstruction engine from this service is not implemented. Upload a .glb model instead.")
+
 
 @app.post("/api/projects/{project_id}/process")
 async def process_project(project_id: str):
     validate_project_id(project_id)
+    if is_reserved(project_id):
+        raise HTTPException(status_code=400, detail="Bundled sample projects are already reconstructed")
+    if not os.path.isdir(os.path.join(STORAGE_DIR, project_id)):
+        raise HTTPException(status_code=404, detail="Project not found. Upload files first.")
+    running = python_job_manager.get_active_job_by_project(project_id)
+    if running:
+        raise HTTPException(status_code=409, detail="A reconstruction job is already running for this project")
     engine_mode = os.getenv("PHOTOGRAMMETRY_ENGINE", "demo").lower()
     job = python_job_manager.create_job(project_id, engine=engine_mode)
     asyncio.create_task(run_reconstruction_pipeline(job["id"], project_id))

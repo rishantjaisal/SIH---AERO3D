@@ -41,7 +41,7 @@ export const NewSurvey: React.FC = () => {
     operator: ''
   });
 
-  const ALLOWED_EXTENSIONS = ['.mp4', '.mov', '.mkv', '.jpg', '.jpeg', '.png', '.zip', '.glb', '.gltf', '.obj', '.ply'];
+  const ALLOWED_EXTENSIONS = ['.mp4', '.mov', '.mkv', '.jpg', '.jpeg', '.png', '.glb'];
   const MAX_FILE_SIZE = 250 * 1024 * 1024; // 250 MB
 
   const validateAndAddFiles = (files: File[]) => {
@@ -239,7 +239,7 @@ export const NewSurvey: React.FC = () => {
                   <input
                     type="file"
                     multiple
-                    accept=".mp4,.mov,.mkv,.jpg,.jpeg,.png,.zip,.glb,.gltf,.obj,.ply"
+                    accept=".mp4,.mov,.mkv,.jpg,.jpeg,.png,.glb"
                     onChange={handleFileSelect}
                     className="hidden"
                     id="drone-file-upload"

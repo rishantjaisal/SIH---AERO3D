@@ -24,16 +24,32 @@ class JobManager:
             "error": None
         }
         self.jobs[job_id] = job
+        # keep memory bounded: drop the oldest finished jobs beyond 500
+        if len(self.jobs) > 500:
+            for jid in [j for j, x in self.jobs.items() if x["status"] in ("completed", "failed")][: len(self.jobs) - 500]:
+                del self.jobs[jid]
         return job
 
     def get_job(self, job_id: str) -> Optional[Dict[str, Any]]:
         return self.jobs.get(job_id)
 
     def get_job_by_project(self, project_id: str) -> Optional[Dict[str, Any]]:
+        """Latest job for the project (dicts keep insertion order)."""
+        found = None
         for job in self.jobs.values():
             if job["projectId"] == project_id:
+                found = job
+        return found
+
+    def get_active_job_by_project(self, project_id: str) -> Optional[Dict[str, Any]]:
+        for job in self.jobs.values():
+            if job["projectId"] == project_id and job["status"] in ("queued", "processing"):
                 return job
         return None
+
+    def delete_by_project(self, project_id: str) -> None:
+        for jid in [j for j, job in self.jobs.items() if job["projectId"] == project_id]:
+            del self.jobs[jid]
 
     def update_job(self, job_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if job_id not in self.jobs:
