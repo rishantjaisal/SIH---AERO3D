@@ -82,6 +82,11 @@ export class DemoProvider extends ReconstructionProvider {
         }
       }
     ];
+
+    // Only list demo projects whose GLB is actually present (large demo models are gitignored)
+    this.demoCaptures = this.demoCaptures.filter(c =>
+      fs.existsSync(path.join(process.cwd(), 'public', c.model_url.replace(/^\//, '')))
+    );
   }
 
   isConfigured() {

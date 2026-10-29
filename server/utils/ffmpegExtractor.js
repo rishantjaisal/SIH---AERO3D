@@ -5,9 +5,13 @@ import fs from 'fs';
 /**
  * Checks system FFmpeg binary availability in PATH
  */
+let ffmpegAvailableCache = null;
+
 export function isFFmpegAvailable() {
+  if (ffmpegAvailableCache === true) return true; // only cache a positive result so installing FFmpeg later works
   try {
     execSync('ffmpeg -version', { stdio: 'ignore' });
+    ffmpegAvailableCache = true;
     return true;
   } catch (err) {
     return false;
@@ -51,7 +55,7 @@ export async function extractFramesFromVideo(videoPath, targetFramesDir, fps = 3
       '-y',
       '-i', videoPath,
       '-vf', `fps=${fps}`,
-      '-vsync', 'vfr',
+      '-fps_mode', 'vfr',
       '-q:v', '2',
       outputPattern
     ];

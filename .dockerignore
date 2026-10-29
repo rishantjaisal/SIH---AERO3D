@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.env
+.env.*
+!.env.example
+storage
+server/uploads/*
+!server/uploads/.gitkeep
+backend/venv
+**/__pycache__
+npm-debug.log*

@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
@@ -9,39 +11,53 @@ import jobRoutes from './routes/jobs.js';
 import aiRoutes from './routes/ai.js';
 import healthRoutes from './routes/health.js';
 import webhookRoutes from './routes/webhooks.js';
+import { getEngine, getAllowedOrigins } from './config.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Permissive CORS middleware
-app.use(cors({ origin: '*', credentials: true }));
+// Security headers. CORP is relaxed so WebGL loaders can fetch GLB assets cross-origin.
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false // the SPA loads Leaflet tiles and inline styles; tune CSP per deployment
+}));
 
-// Global CORS & Cross-Origin Resource Sharing headers for WebGL asset streaming across all browsers & devices
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
+// CORS limited to the configured origins (CORS_ORIGIN). Same-origin requests need no CORS headers.
+const allowedOrigins = getAllowedOrigins();
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(null, false);
+  },
+  methods: ['GET', 'POST', 'OPTIONS']
+}));
+
+// Basic abuse protection on all API routes; uploads and processing get a tighter limit
+const apiLimiter = rateLimit({ windowMs: 60 * 1000, limit: 300, standardHeaders: true, legacyHeaders: false });
+const heavyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: true, code: 'RATE_LIMITED', message: 'Too many uploads or processing requests. Try again later.' }
 });
+app.use('/api', apiLimiter);
+app.post('/api/projects/upload', heavyLimiter);
+app.post('/api/projects/:id/upload', heavyLimiter);
+app.post('/api/projects/:id/process', heavyLimiter);
 
 // Webhooks raw parser comes before json parser for signature check
 app.use('/api/webhooks', webhookRoutes);
 
 // JSON body parser for normal endpoints
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-// Static options with explicit CORS and MIME headers
+// Static options: MIME type for GLB assets (CORP header comes from helmet above)
 const staticOptions = {
   setHeaders: (res, filepath) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     if (filepath.endsWith('.glb')) {
       res.setHeader('Content-Type', 'model/gltf-binary');
     }
@@ -95,6 +111,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`==================================================`);
   console.log(`🚀 Aero3D Intelligence Backend Running on Port ${PORT}`);
   console.log(`🌐 Health Check: http://localhost:${PORT}/api/health`);
-  console.log(`⚡ Engine Mode: ${process.env.PHOTOGRAMMETRY_ENGINE || process.env.RECONSTRUCTION_ENGINE || 'demo'}`);
+  console.log(`⚡ Engine Mode: ${getEngine()}`);
   console.log(`==================================================`);
 });

@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import crypto from 'crypto';
+import { getEngine } from '../config.js';
 
 /**
  * In-Memory & File-backed Asynchronous Processing Job Queue Manager
@@ -10,7 +10,7 @@ class JobManager {
   }
 
   createJob(projectId, options = {}) {
-    const jobId = `job-${Date.now()}-${Math.round(Math.random() * 1000)}`;
+    const jobId = `job-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
     const job = {
       id: jobId,
       projectId,
@@ -23,7 +23,7 @@ class JobManager {
       updatedAt: new Date().toISOString(),
       inputType: options.inputType || 'video',
       inputFile: options.inputFile || null,
-      reconstructionEngine: options.reconstructionEngine || process.env.PHOTOGRAMMETRY_ENGINE || 'demo',
+      reconstructionEngine: options.reconstructionEngine || getEngine(),
       qualityMetrics: null,
       error: null
     };
@@ -36,11 +36,13 @@ class JobManager {
     return this.jobs.get(jobId) || null;
   }
 
+  /** Latest job for a project (Map preserves insertion order, so keep the last match). */
   getJobByProject(projectId) {
+    let latest = null;
     for (const job of this.jobs.values()) {
-      if (job.projectId === projectId) return job;
+      if (job.projectId === projectId) latest = job;
     }
-    return null;
+    return latest;
   }
 
   updateJob(jobId, updates) {
@@ -67,4 +69,5 @@ class JobManager {
   }
 }
 
+export { JobManager };
 export const jobManager = new JobManager();

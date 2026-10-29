@@ -107,8 +107,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const [modelMetrics, setModelMetrics] = useState<ModelMetrics | null>(null);
   const [hasNativePointCloud, setHasNativePointCloud] = useState<boolean>(true);
 
-  console.log('[Aero3D ThreeCanvas]', { projectId, modelUrl });
-
   const handleModelLoaded = useCallback((metrics: ModelMetrics) => {
     setModelMetrics(metrics);
     if (onMetricsUpdate) {

@@ -171,9 +171,11 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       const backendProjects = await api.getProjects();
       if (backendProjects && backendProjects.length > 0) {
+        const backendIds = new Set(backendProjects.map(bp => bp.id));
         setProjects(prev => {
+          // Drop built-in demo projects the server no longer lists (their GLB is not deployed)
+          const merged = prev.filter(p => !(p.isDemo && p.source_type === 'demo' && !backendIds.has(p.id)));
           // Merge backend projects with local projects without overwriting custom local model_urls
-          const merged = [...prev];
           backendProjects.forEach(bp => {
             const idx = merged.findIndex(p => p.id === bp.id);
             if (idx >= 0) {
