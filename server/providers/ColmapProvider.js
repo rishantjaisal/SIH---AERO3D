@@ -2,6 +2,7 @@ import { ReconstructionProvider } from './ReconstructionProvider.js';
 import { spawn, execSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import { ProjectStore } from '../services/ProjectStore.js';
 
 export class ColmapProvider extends ReconstructionProvider {
   constructor() {
@@ -38,35 +39,18 @@ export class ColmapProvider extends ReconstructionProvider {
   }
 
   async listCaptures() {
-    return [];
+    return ProjectStore.list().filter(p => p.provider === 'colmap');
   }
 
   async getCapture(id) {
-    const projectDir = path.join(process.cwd(), 'storage', 'projects', id);
-    const modelPath = path.join(projectDir, 'output', 'model.glb');
-    const exists = fs.existsSync(modelPath);
-
-    return {
-      id,
-      name: `COLMAP Survey Digital Twin ${id}`,
-      status: exists ? 'SUCCEEDED' : 'PROCESSING',
-      provider: 'colmap',
-      created_at: new Date().toISOString(),
-      model_url: `/api/projects/${id}/model`,
-      isDemo: false,
-      reconstructionEngine: 'colmap',
-      metadata: {
-        locationName: 'Local Survey Site',
-        gps: null,
-        gsd: '1.0 cm/px',
-        surveyDate: new Date().toISOString().split('T')[0],
-        droneModel: 'COLMAP Photogrammetry Rig',
-        cameraModel: 'Extracted Video Frames',
-        flightAltitude: '40 m',
-        weather: 'Clear',
-        operator: 'Aero3D Local Worker'
-      }
-    };
+    const stored = ProjectStore.get(id);
+    if (!stored) {
+      const err = new Error(`Project ${id} not found.`);
+      err.status = 404;
+      throw err;
+    }
+    const exists = fs.existsSync(path.join(process.cwd(), 'storage', 'projects', id, 'output', 'model.glb'));
+    return { ...stored, status: exists ? 'SUCCEEDED' : stored.status };
   }
 
   async getArtifacts(id) {
@@ -100,18 +84,28 @@ export class ColmapProvider extends ReconstructionProvider {
       throw new Error('Local photogrammetry engine is unavailable on this computer. (COLMAP binary missing or blocked by OS Security/Device Guard)');
     }
 
-    return {
+    const hasGps = typeof options.latitude === 'number' && typeof options.longitude === 'number';
+    return ProjectStore.save({
       id: projectId,
       name: options.name || 'COLMAP Drone Survey',
-      status: 'PROCESSING',
+      status: options.status || 'QUEUED',
+      provider: 'colmap',
       created_at: new Date().toISOString(),
-      model_url: `/api/projects/${projectId}/model`,
-      projectDir,
-      framesDir,
-      dbPath,
-      sparseDir,
-      denseDir,
-      outputDir
-    };
+      model_url: options.model_url || `/api/projects/${projectId}/model`,
+      thumbnail_url: '',
+      isDemo: false,
+      reconstructionEngine: 'colmap',
+      metadata: {
+        locationName: options.location || '',
+        gps: hasGps ? { latitude: options.latitude, longitude: options.longitude } : null,
+        gsd: options.gsd || '',
+        surveyDate: options.surveyDate || new Date().toISOString().split('T')[0],
+        droneModel: options.droneModel || '',
+        cameraModel: options.cameraModel || '',
+        flightAltitude: options.flightAltitude || '',
+        weather: options.weather || '',
+        operator: options.operator || ''
+      }
+    });
   }
 }

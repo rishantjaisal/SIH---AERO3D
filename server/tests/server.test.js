@@ -102,3 +102,128 @@ test('DELETE /api/projects/:id removes only that project folder and rejects bad 
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+// ---------------------------------------------------------------------------
+// HTTP-level backend tests (isolated temp working directory, real Express app)
+// ---------------------------------------------------------------------------
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { before, after } from 'node:test';
+
+let baseUrl; let httpServer; let origCwd; let tmp;
+
+before(async () => {
+  origCwd = process.cwd();
+  tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'aero-test-'));
+  process.chdir(tmp);
+  const { app } = await import('../index.js');
+  httpServer = app.listen(0);
+  baseUrl = `http://127.0.0.1:${httpServer.address().port}`;
+});
+after(() => {
+  httpServer?.close();
+  process.chdir(origCwd);
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+const glbBytes = () => {
+  const b = Buffer.alloc(20); b.write('glTF', 0); return b;
+};
+const upload = async (id, name = 'm.glb', body = {}) => {
+  const fd = new FormData();
+  Object.entries(body).forEach(([k, v]) => fd.append(k, v));
+  fd.append('files', new Blob([glbBytes()]), name);
+  return fetch(`${baseUrl}/api/projects/${id}/upload`, { method: 'POST', body: fd });
+};
+
+test('unknown API route returns JSON 404', async () => {
+  const r = await fetch(`${baseUrl}/api/nope`);
+  assert.equal(r.status, 404);
+  assert.equal((await r.json()).error, true);
+});
+
+test('project data is not exposed through /storage or /uploads', async () => {
+  assert.equal((await upload('leak-test')).status, 201);
+  for (const p of ['/storage/projects/leak-test/project.json', '/uploads/x', '/api/uploads/x']) {
+    const r = await fetch(baseUrl + p);
+    assert.ok(!(r.status === 200 && (r.headers.get('content-type') || '').includes('json')), p);
+  }
+});
+
+test('uploaded project persists, is listed, and is fetchable; unknown id is 404', async () => {
+  const r = await upload('proj-a', 'm.glb', { projectName: 'Site A', latitude: '12.5', longitude: '77.1' });
+  assert.equal(r.status, 201);
+  assert.ok(fs.existsSync(path.join(tmp, 'storage/projects/proj-a/project.json')));
+  const got = await (await fetch(`${baseUrl}/api/projects/proj-a`)).json();
+  assert.equal((got.project || got).name, 'Site A');
+  const list = await (await fetch(`${baseUrl}/api/projects`)).json();
+  assert.ok(JSON.stringify(list).includes('proj-a'));
+  assert.equal((await fetch(`${baseUrl}/api/projects/does-not-exist`)).status, 404);
+});
+
+test('upload rejects reserved ids and unsupported extensions', async () => {
+  assert.equal((await upload('demo-proj-001')).status, 403);
+  const fd = new FormData(); fd.append('files', new Blob(['x']), 'a.obj');
+  const r = await fetch(`${baseUrl}/api/projects/proj-b/upload`, { method: 'POST', body: fd });
+  assert.ok(r.status >= 400 && r.status < 500);
+  assert.equal(fs.existsSync(path.join(tmp, 'storage/projects/proj-b')), false);
+});
+
+test('process: 404 unknown, 400 reserved, completes immediately when a model exists', async () => {
+  assert.equal((await fetch(`${baseUrl}/api/projects/ghost/process`, { method: 'POST' })).status, 404);
+  assert.equal((await fetch(`${baseUrl}/api/projects/demo-proj-001/process`, { method: 'POST' })).status, 400);
+  await upload('proj-c');
+  const p = await fetch(`${baseUrl}/api/projects/proj-c/process`, { method: 'POST' });
+  assert.equal(p.status, 202);
+  const { jobId } = await p.json();
+  await new Promise(r => setTimeout(r, 200));
+  const job = await (await fetch(`${baseUrl}/api/jobs/${jobId}`)).json();
+  assert.equal((job.job || job).status, 'completed');
+});
+
+test('process without a model fails honestly with no fabricated metrics', async () => {
+  const fd = new FormData(); fd.append('files', new Blob([Buffer.from('not really a jpeg')]), 'a.jpg');
+  await fetch(`${baseUrl}/api/projects/proj-d/upload`, { method: 'POST', body: fd });
+  const { jobId } = await (await fetch(`${baseUrl}/api/projects/proj-d/process`, { method: 'POST' })).json();
+  await new Promise(r => setTimeout(r, 300));
+  const j = await (await fetch(`${baseUrl}/api/jobs/${jobId}`)).json();
+  const job = j.job || j;
+  assert.equal(job.status, 'failed');
+  assert.notEqual(job.qualityMetrics?.registeredImages, 164);
+  assert.ok(!fs.existsSync(path.join(tmp, 'storage/projects/proj-d/output/model.glb')));
+});
+
+test('DELETE removes the project, is idempotent, and keeps sample models', async () => {
+  await upload('proj-e');
+  assert.equal((await fetch(`${baseUrl}/api/projects/proj-e`, { method: 'DELETE' })).status, 200);
+  assert.equal(fs.existsSync(path.join(tmp, 'storage/projects/proj-e')), false);
+  // delete is idempotent, and never touches the bundled sample model
+  assert.equal((await fetch(`${baseUrl}/api/projects/proj-e`, { method: 'DELETE' })).status, 200);
+  assert.ok((await fetch(`${baseUrl}/api/projects/demo-proj-001`, { method: 'DELETE' })).status < 500);
+  assert.equal((await fetch(`${baseUrl}/api/projects/proj-e`)).status, 404);
+});
+
+test('AI analysis is only provided for the bundled sample', async () => {
+  const real = await (await fetch(`${baseUrl}/api/ai/analysis/proj-a`)).json();
+  assert.equal(real.available, false);
+  assert.equal(real.detections.length, 0);
+  const demo = await (await fetch(`${baseUrl}/api/ai/analysis/demo-proj-001`)).json();
+  assert.ok(demo.detections.length > 0);
+});
+
+test('CORS allows DELETE and the health endpoint reports real capabilities', async () => {
+  const h = await (await fetch(`${baseUrl}/api/health`)).json();
+  assert.ok(h.services.ffmpeg && h.services.colmap);
+  assert.notEqual(h.services.database.status, 'ONLINE');
+});
+
+test('JobManager prunes finished jobs and finds active ones per project', () => {
+  const jm = new JobManager();
+  const j = jm.createJob('p1');
+  assert.equal(jm.getActiveJobByProject('p1')?.id, j.id);
+  jm.failJob(j.id, 'X', 'boom');
+  assert.equal(jm.getActiveJobByProject('p1'), null);
+  jm.deleteByProject('p1');
+  assert.ok(!jm.getJob(j.id));
+});

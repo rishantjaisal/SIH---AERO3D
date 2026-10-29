@@ -5,9 +5,24 @@ const router = express.Router();
 // GET /api/ai/analysis/:projectId
 router.get('/analysis/:projectId', (req, res) => {
   const projectId = req.params.projectId;
-  
-  // Return structured AI detections
+
+  // The detections below are SAMPLE data describing the bundled demo scene only. No detector runs on uploads,
+  // so any other project honestly reports "not available" instead of inheriting the sample's findings.
+  if (projectId !== 'demo-proj-001') {
+    return res.json({
+      success: true,
+      projectId,
+      available: false,
+      isDemo: true,
+      modeLabel: 'AI ANALYSIS NOT AVAILABLE',
+      message: 'No computer-vision detector is configured for this project.',
+      summary: { totalObjects: 0, buildingsDetected: 0, roadsDetected: 0, vegetationClusters: 0, vehiclesDetected: 0, structuralAnomalies: 0 },
+      detections: []
+    });
+  }
+
   res.json({
+    available: true,
     success: true,
     projectId,
     isDemo: true,

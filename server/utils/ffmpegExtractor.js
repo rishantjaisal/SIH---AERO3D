@@ -40,7 +40,7 @@ export function validateMediaFile(filePath, originalName, fileSize) {
 /**
  * Extract frames from a video file into targetFramesDir at specified FPS using FFmpeg
  */
-export async function extractFramesFromVideo(videoPath, targetFramesDir, fps = 3, onProgress = () => {}) {
+export async function extractFramesFromVideo(videoPath, targetFramesDir, fps = 3, onProgress = () => {}, timeoutMs = 10 * 60 * 1000) {
   if (!fs.existsSync(targetFramesDir)) {
     fs.mkdirSync(targetFramesDir, { recursive: true });
   }
@@ -61,6 +61,8 @@ export async function extractFramesFromVideo(videoPath, targetFramesDir, fps = 3
     ];
 
     const ffmpegProc = spawn('ffmpeg', args);
+    // Never let a corrupt/huge video hang a worker forever
+    const timer = setTimeout(() => ffmpegProc.kill('SIGKILL'), timeoutMs);
 
     ffmpegProc.stderr.on('data', (data) => {
       const msg = data.toString();
@@ -70,6 +72,7 @@ export async function extractFramesFromVideo(videoPath, targetFramesDir, fps = 3
     });
 
     ffmpegProc.on('close', (code) => {
+      clearTimeout(timer);
       if (code === 0) {
         const files = fs.readdirSync(targetFramesDir).filter(f => f.endsWith('.jpg'));
         resolve({ frameCount: files.length, fps });
@@ -79,6 +82,7 @@ export async function extractFramesFromVideo(videoPath, targetFramesDir, fps = 3
     });
 
     ffmpegProc.on('error', (err) => {
+      clearTimeout(timer);
       reject(new Error(`FFmpeg execution error: ${err.message}`));
     });
   });

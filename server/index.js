@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import polycamRoutes from './routes/polycam.js';
 import projectRoutes from './routes/projects.js';
 import jobRoutes from './routes/jobs.js';
@@ -31,7 +32,7 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
     return cb(null, false);
   },
-  methods: ['GET', 'POST', 'OPTIONS']
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS']
 }));
 
 // Basic abuse protection on all API routes; uploads and processing get a tighter limit
@@ -65,12 +66,8 @@ const staticOptions = {
 };
 
 // Serve static uploads, project storage, demo assets, and frontend client build
-const uploadsPath = path.join(process.cwd(), 'server', 'uploads');
-const storagePath = path.join(process.cwd(), 'storage');
-
-app.use('/uploads', express.static(uploadsPath, staticOptions));
-app.use('/api/uploads', express.static(uploadsPath, staticOptions));
-app.use('/storage', express.static(storagePath, staticOptions));
+// NOTE: /storage and /uploads are intentionally NOT served: they hold every project's raw files and project.json.
+// Models are delivered only through GET /api/projects/:id/model.
 app.use('/demo', express.static(path.join(process.cwd(), 'public', 'demo'), staticOptions));
 
 const distPath = path.join(process.cwd(), 'dist');
@@ -85,9 +82,12 @@ app.use('/api/jobs', jobRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/health', healthRoutes);
 
+// Unknown API routes get JSON, not the SPA page
+app.use('/api', (req, res) => res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'API route not found.' }));
+
 // Catch-all route to serve SPA frontend for any non-API request
 app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/storage') || req.path.startsWith('/demo')) {
+  if (req.path.startsWith('/api') || req.path.startsWith('/demo')) {
     return next();
   }
   const indexPath = path.join(distPath, 'index.html');
@@ -99,18 +99,29 @@ app.get('*', (req, res, next) => {
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
-  console.error('[Aero3D Backend Error]', err);
-  res.status(err.status || 500).json({
-    error: true,
-    code: err.code || 'SERVER_ERROR',
-    message: err.message || 'An internal server error occurred.'
-  });
+  let status = err.status || 500;
+  let message = err.message;
+  if (err.name === 'MulterError') {
+    status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+    message = err.code === 'LIMIT_FILE_SIZE' ? 'File is too large.' : `Upload rejected: ${err.message}`;
+  } else if (err.type === 'entity.parse.failed') {
+    status = 400; message = 'Malformed JSON body.';
+  }
+  if (status >= 500) console.error('[Aero3D Backend Error]', err);
+  // Do not leak internals of unexpected failures in production
+  if (status >= 500 && process.env.NODE_ENV === 'production') message = 'An internal server error occurred.';
+  res.status(status).json({ error: true, code: err.code || 'SERVER_ERROR', message: message || 'An internal server error occurred.' });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`==================================================`);
-  console.log(`🚀 Aero3D Intelligence Backend Running on Port ${PORT}`);
-  console.log(`🌐 Health Check: http://localhost:${PORT}/api/health`);
-  console.log(`⚡ Engine Mode: ${getEngine()}`);
-  console.log(`==================================================`);
-});
+export { app };
+
+// Only listen when run directly (tests import the app)
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Aero3D Intelligence Backend running on port ${PORT} (engine: ${getEngine()})`);
+    console.log(`Health check: http://localhost:${PORT}/api/health`);
+  });
+  const shutdown = () => server.close(() => process.exit(0));
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+}

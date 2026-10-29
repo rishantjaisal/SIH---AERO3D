@@ -1,8 +1,10 @@
 import { ReconstructionProvider } from './ReconstructionProvider.js';
 import path from 'path';
 import fs from 'fs';
+import { ProjectStore } from '../services/ProjectStore.js';
 
 const SVG_THUMBNAILS = {
+  generic: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><polygon points="300,110 400,165 400,275 300,330 200,275 200,165" fill="none" stroke="%2338bdf8" stroke-width="3"/><polyline points="200,165 300,220 400,165" fill="none" stroke="%2338bdf8" stroke-width="3"/><line x1="300" y1="220" x2="300" y2="330" stroke="%2338bdf8" stroke-width="3"/></svg>`,
   academic: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="150" y="120" width="300" height="180" rx="6" fill="%231e293b" stroke="%2338bdf8" stroke-width="2"/><rect x="180" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="240" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="300" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><rect x="360" y="150" width="40" height="50" fill="%2338bdf8" opacity="0.8"/><polygon points="250,120 300,70 350,120" fill="%230284c7"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">KIET CAMPUS DIGITAL TWIN</text></svg>`,
   taj: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="180" y="100" width="240" height="200" rx="8" fill="%230284c7" opacity="0.3" stroke="%2338bdf8" stroke-width="2"/><polygon points="300,40 220,100 380,100" fill="%2338bdf8" opacity="0.6"/><text x="300" y="340" text-anchor="middle" fill="%2338bdf8" font-family="monospace" font-size="16" font-weight="bold">TAJ MAHAL DIGITAL TWIN</text></svg>`,
   city: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23060913"/><rect x="80" y="140" width="440" height="160" rx="6" fill="%230f172a" stroke="%2334d399" stroke-width="2"/><text x="300" y="340" text-anchor="middle" fill="%2334d399" font-family="monospace" font-size="16" font-weight="bold">RUINED CITY DIGITAL TWIN</text></svg>`
@@ -94,7 +96,9 @@ export class DemoProvider extends ReconstructionProvider {
   }
 
   async listCaptures() {
-    return this.demoCaptures;
+    // Bundled samples plus every project persisted on disk
+    const builtInIds = new Set(this.demoCaptures.map(c => c.id));
+    return [...this.demoCaptures, ...ProjectStore.list().filter(p => !builtInIds.has(p.id))];
   }
 
   async getCapture(id) {
@@ -103,32 +107,15 @@ export class DemoProvider extends ReconstructionProvider {
       return { ...capture, isDemo: true };
     }
 
-    const projectStorageDir = path.join(process.cwd(), 'storage', 'projects', id);
-    const customModelPath = path.join(projectStorageDir, 'output', 'model.glb');
-    const hasCustomModel = fs.existsSync(customModelPath);
-
-    return {
-      id,
-      name: `Drone Survey Digital Twin ${id}`,
-      status: hasCustomModel ? 'SUCCEEDED' : 'QUEUED',
-      provider: 'demo',
-      created_at: new Date().toISOString(),
-      model_url: `/api/projects/${id}/model`,
-      thumbnail_url: SVG_THUMBNAILS.academic,
-      isDemo: true,
-      reconstructionEngine: 'demo',
-      metadata: {
-        locationName: '',
-        gps: null,
-        gsd: '',
-        surveyDate: new Date().toISOString().split('T')[0],
-        droneModel: '',
-        cameraModel: '',
-        flightAltitude: '',
-        weather: '',
-        operator: ''
-      }
-    };
+    const stored = ProjectStore.get(id);
+    if (!stored) {
+      const err = new Error(`Project ${id} not found.`);
+      err.status = 404;
+      throw err;
+    }
+    // Status follows the files that really exist, not a guess
+    const hasModel = fs.existsSync(path.join(process.cwd(), 'storage', 'projects', id, 'output', 'model.glb'));
+    return { ...stored, status: hasModel ? 'SUCCEEDED' : stored.status };
   }
 
   async getArtifacts(id) {
@@ -151,9 +138,8 @@ export class DemoProvider extends ReconstructionProvider {
   }
 
   async createCapture(options) {
-    const newId = options.projectId || options.id || `proj-${Date.now()}`;
-    const existingIdx = this.demoCaptures.findIndex(c => c.id === newId);
-
+    const newId = options.projectId || options.id;
+    if (!newId) throw new Error('projectId is required.');
     const hasGps = typeof options.latitude === 'number' && typeof options.longitude === 'number';
 
     const newCapture = {
@@ -163,8 +149,8 @@ export class DemoProvider extends ReconstructionProvider {
       provider: 'demo',
       created_at: new Date().toISOString(),
       model_url: options.model_url || `/api/projects/${newId}/model`,
-      thumbnail_url: SVG_THUMBNAILS.academic,
-      isDemo: true,
+      thumbnail_url: SVG_THUMBNAILS.generic,
+      isDemo: false, // user data, not one of the bundled samples
       reconstructionEngine: 'demo',
       metadata: {
         locationName: options.location || '',
@@ -179,12 +165,6 @@ export class DemoProvider extends ReconstructionProvider {
       }
     };
 
-    if (existingIdx >= 0) {
-      this.demoCaptures[existingIdx] = newCapture;
-    } else {
-      this.demoCaptures.unshift(newCapture);
-    }
-
-    return newCapture;
+    return ProjectStore.save(newCapture);
   }
 }
