@@ -13,20 +13,20 @@ export const SettingsPage: React.FC = () => {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <Topbar title="System settings" />
+        <Topbar title="System Health & Settings" />
 
         <main id="main-content" className="p-6 max-w-4xl mx-auto w-full space-y-6">
 
           <div>
-            <h2 className="page-title">System health and API configuration</h2>
-            <p className="page-lede mt-2">Monitor provider integration health and security credentials.</p>
+            <h2 className="text-xl font-bold text-slate-100 font-sans">System Health & API Configuration</h2>
+            <p className="text-xs text-slate-400">Monitor provider integration health and security credentials.</p>
           </div>
 
           {/* System Health Grid */}
-          <div className="p-6 rounded-2xl card-elevated border border-slate-700/80 space-y-4">
-            <h3 className="font-bold text-sm text-slate-100">Core Subsystem Status</h3>
+          <div className="p-6 rounded-2xl glass-panel-elevated border border-slate-700/80 space-y-4">
+            <h3 className="font-bold text-sm text-slate-100 tracking-wide uppercase">Core Subsystem Status</h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
               
               <div className="p-3.5 rounded-xl bg-aerospace-950 border border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -66,13 +66,13 @@ export const SettingsPage: React.FC = () => {
           </div>
 
           {/* Polycam Setup Panel */}
-          <div className="p-6 rounded-2xl card border border-slate-800 space-y-4">
+          <div className="p-6 rounded-2xl glass-panel border border-slate-800 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <Key className="w-4 h-4 text-sky-400" />
-                <h3 className="font-bold text-sm text-slate-100">Polycam API Integration Setup</h3>
+                <h3 className="font-bold text-sm text-slate-100 uppercase">Polycam API Integration Setup</h3>
               </div>
-              <span className={`px-2.5 py-0.5 rounded text-xs font-bold ${
+              <span className={`px-2.5 py-0.5 rounded text-xs font-mono font-bold ${
                 isPolycam ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
               }`}>
                 {isPolycam ? 'CONNECTED' : 'NOT CONFIGURED'}
@@ -83,8 +83,8 @@ export const SettingsPage: React.FC = () => {
               Polycam photogrammetry reconstruction access requires an eligible Polycam Enterprise account or API add-on token.
             </p>
 
-            <div className="p-4 rounded-xl bg-aerospace-950 border border-slate-800 space-y-2 text-sm readout">
-              <span className="text-slate-400 block text-xs">Server Environment Configuration (.env)</span>
+            <div className="p-4 rounded-xl bg-aerospace-950 border border-slate-800 space-y-2 font-mono text-xs">
+              <span className="text-slate-400 block uppercase text-xs">Server Environment Configuration (.env)</span>
               <p className="text-slate-300">POLYCAM_API_TOKEN=<span className="text-slate-400">{isPolycam ? '********************' : 'not_set'}</span></p>
               <p className="text-slate-300">POLYCAM_BASE_URL=https://poly.cam/api/v1</p>
               <p className="text-slate-300">RECONSTRUCTION_PROVIDER={providerStatus.mode}</p>

@@ -128,15 +128,15 @@ export const ProcessingPage: React.FC = () => {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <Topbar title="Reconstruction" />
+        <Topbar title="Reconstruction Pipeline Status" />
 
         <main id="main-content" className="p-6 max-w-3xl mx-auto w-full space-y-6 my-auto">
           
           {/* Main Status Card */}
-          <div className="p-8 rounded-2xl card-elevated border border-slate-700/80 shadow-2xl space-y-6 text-center">
+          <div className="p-8 rounded-2xl glass-panel-elevated border border-slate-700/80 shadow-2xl space-y-6 text-center">
             
             {/* Header Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-300 text-xs">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-300 font-mono text-xs">
               <Activity className="w-3.5 h-3.5 text-sky-400 animate-spin-slow" />
               <span>RECONSTRUCTION ENGINE: {(job?.reconstructionEngine || providerStatus?.mode || 'demo').toUpperCase()}</span>
             </div>
@@ -161,14 +161,14 @@ export const ProcessingPage: React.FC = () => {
             </p>
 
             {backendUnreachable && !isCompleted && (
-              <p className="text-amber-300 text-xs">
+              <p className="text-amber-300 text-xs font-mono">
                 Cannot reach the backend server. Retrying automatically...
               </p>
             )}
 
             {/* Progress Bar & Percentage */}
             <div className="space-y-2 max-w-md mx-auto">
-              <div className="flex justify-between text-xs font-bold">
+              <div className="flex justify-between text-xs font-mono font-bold">
                 <span className={isFailed ? 'text-rose-400' : isCompleted ? 'text-emerald-400' : 'text-sky-400'}>
                   {isFailed ? 'FAILED' : isCompleted ? 'COMPLETED' : 'Processing...'}
                 </span>
@@ -188,7 +188,7 @@ export const ProcessingPage: React.FC = () => {
                 />
               </div>
 
-              <div className="flex justify-between text-xs text-slate-400">
+              <div className="flex justify-between text-xs font-mono text-slate-400">
                 <span>Elapsed: {elapsed}s</span>
                 <span>Stage: {job?.stageLabel || (isCompleted ? 'Completed' : 'Processing')}</span>
               </div>
@@ -197,7 +197,7 @@ export const ProcessingPage: React.FC = () => {
             {/* Error Diagnostics State */}
             {isFailed && (
               <div className="p-5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-left space-y-3 max-w-md mx-auto">
-                <div className="flex items-center gap-2 text-rose-400 text-xs font-bold">
+                <div className="flex items-center gap-2 text-rose-400 text-xs font-bold font-mono">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
                   <span>{isEngineUnavailable ? 'ENGINE UNAVAILABLE' : 'RECONSTRUCTION FAILED'}</span>
                 </div>
@@ -263,14 +263,14 @@ export const ProcessingPage: React.FC = () => {
                   <a
                     href={`/api/projects/${targetId}/model`}
                     download={`${targetId}_model.glb`}
-                    className="flex items-center justify-center gap-1.5 p-2.5 rounded-lg card hover:bg-slate-800 text-sky-400 font-semibold"
+                    className="flex items-center justify-center gap-1.5 p-2.5 rounded-lg glass-panel hover:bg-slate-800 text-sky-400 font-mono font-semibold"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Download GLB</span>
                   </a>
                   <button
                     onClick={() => navigate(`/reports`)}
-                    className="flex items-center justify-center gap-1.5 p-2.5 rounded-lg card hover:bg-slate-800 text-slate-300 font-semibold"
+                    className="flex items-center justify-center gap-1.5 p-2.5 rounded-lg glass-panel hover:bg-slate-800 text-slate-300 font-mono font-semibold"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     <span>View Inspection Report</span>

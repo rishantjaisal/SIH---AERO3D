@@ -52,34 +52,37 @@ export const Sidebar: React.FC = () => {
     {open && <div className="fixed inset-0 z-50 bg-slate-950/70 lg:hidden" onClick={() => setOpen(false)} aria-hidden />}
     <aside
       aria-label="Primary navigation"
-      className={`fixed lg:static inset-y-0 left-0 z-[60] w-72 max-w-[85vw] bg-aerospace-900 border-r border-slate-700/70 flex flex-col h-full shrink-0 select-none transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
+      className={`fixed lg:static inset-y-0 left-0 z-[60] w-64 max-w-[85vw] bg-aerospace-900 border-r border-slate-800/80 flex flex-col h-full shrink-0 select-none transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
     >
       
       {/* Brand Header */}
-      <div className="h-16 px-5 border-b border-slate-700/70 flex items-center justify-between">
-        <NavLink to="/" className="flex items-center gap-3" aria-label="AERO3D home">
-          <span className="w-9 h-9 rounded-lg bg-sky-500 text-aerospace-950 flex items-center justify-center font-display font-bold text-sm">3D</span>
-          <span>
-            <span className="block font-display font-semibold text-lg leading-none text-slate-100">AERO<span className="text-sky-400">3D</span></span>
-            <span className="block text-xs text-slate-400 mt-1">Geospatial intelligence</span>
-          </span>
-        </NavLink>
+      <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 font-bold font-mono">
+            3D
+          </div>
+          <div>
+            <div className="font-bold text-sm text-slate-100 tracking-wider">AERO<span className="text-sky-400">3D</span></div>
+            <p className="text-xs text-slate-400 font-sans">Command Twin System</p>
+          </div>
+        </div>
+        <span className="hidden lg:inline px-2 py-0.5 rounded text-xs font-mono bg-slate-800 text-slate-300 border border-slate-700">v1.0</span>
         <button type="button" onClick={() => setOpen(false)} className="lg:hidden p-2 rounded-lg text-slate-300 hover:text-white" aria-label="Close navigation menu"><X className="w-4 h-4" /></button>
       </div>
 
       {/* Active Project Banner */}
-      <div className="mx-4 mt-5 mb-2 p-3 rounded-xl bg-aerospace-850 border border-slate-700/70">
-        <div className="text-xs text-slate-400 mb-1">Active project</div>
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-semibold text-slate-100 truncate" title={activeProject?.name || 'KIET Campus Survey'}>
+      <div className="p-3 bg-aerospace-950/60 border-b border-slate-800/60">
+        <div className="text-xs font-mono uppercase text-slate-400 tracking-wider mb-1">Active Project</div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-sky-300 truncate max-w-[170px]" title={activeProject?.name || 'KIET Campus Survey'}>
             {activeProject?.name || 'KIET Campus Survey'}
           </span>
-          <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" aria-label="Project available" />
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
         </div>
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 overflow-y-auto px-4 py-3 space-y-0.5" aria-label="Sections">
+      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isItemActive = location.pathname === item.base || location.pathname.startsWith(item.base + '/');
@@ -88,10 +91,10 @@ export const Sidebar: React.FC = () => {
               key={item.label}
               to={item.path}
               className={() =>
-                `relative flex items-center justify-between pl-4 pr-3 h-11 rounded-lg text-sm font-medium transition-colors ${
+                `flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
                   isItemActive
-                    ? 'bg-aerospace-800 text-slate-100 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-full before:bg-sky-400'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-aerospace-850'
+                    ? 'bg-sky-500/15 text-sky-300 border border-sky-500/30 shadow-sm font-semibold'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
                 }`
               }
             >
@@ -99,23 +102,23 @@ export const Sidebar: React.FC = () => {
                 <Icon className={`w-4 h-4 ${isItemActive ? 'text-sky-400' : 'text-slate-400'}`} />
                 <span>{item.label}</span>
               </div>
-              
+              {isItemActive && <ChevronRight className="w-3.5 h-3.5 text-sky-400" />}
             </NavLink>
           );
         })}
       </nav>
 
       {/* Bottom Health & User Section */}
-      <div className="p-3 border-t border-slate-700/70 space-y-3">
+      <div className="p-3 border-t border-slate-800/80 space-y-3 bg-aerospace-950/40">
         <SystemStatusBadge />
 
-        <div className="flex items-center gap-3 p-2.5 rounded-[10px] bg-aerospace-900 border border-slate-700 text-sm">
-          <div className="w-7 h-7 rounded-full bg-indigo-600/30 text-indigo-300 flex items-center justify-center font-bold font-display">
+        <div className="flex items-center gap-2.5 p-2 rounded-lg bg-aerospace-850 border border-slate-800 text-xs">
+          <div className="w-7 h-7 rounded-full bg-indigo-600/30 text-indigo-300 flex items-center justify-center font-bold font-mono">
             IT
           </div>
           <div className="truncate flex-1">
-            <p className="font-medium text-slate-100 text-sm truncate">INNOTECH 2026 evaluator</p>
-            <p className="text-xs text-slate-400 truncate">AERO3D drone twin</p>
+            <p className="font-semibold text-slate-200 text-xs truncate">INNOTECH 2026 Evaluator</p>
+            <p className="text-xs text-slate-400 truncate">Aero3D Drone Twin</p>
           </div>
         </div>
       </div>

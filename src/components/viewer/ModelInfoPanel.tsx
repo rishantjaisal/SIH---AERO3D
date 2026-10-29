@@ -46,91 +46,131 @@ export const ModelInfoPanel: React.FC<ModelInfoPanelProps> = ({
     : 'Not available';
 
   return (
-    <aside aria-label="Model information" className="absolute md:static inset-y-0 right-0 z-30 w-80 max-w-[88vw] shrink-0 bg-aerospace-900 border-l border-slate-700 flex flex-col h-full overflow-y-auto shadow-2xl md:shadow-none">
-
-      <div className="h-14 px-4 border-b border-slate-700 flex items-center justify-between sticky top-0 bg-aerospace-900 z-10">
+    <aside aria-label="Model information" className="absolute md:static inset-y-0 right-0 z-30 w-80 max-w-[88vw] shrink-0 bg-aerospace-900/95 border-l border-slate-800/80 flex flex-col h-full overflow-y-auto backdrop-blur-md text-xs shadow-2xl md:shadow-none">
+      
+      {/* Panel Header */}
+      <div className="p-4 border-b border-slate-800/80 flex items-center justify-between sticky top-0 bg-aerospace-900 z-10">
         <div className="flex items-center gap-2">
-          <Box className="w-4 h-4 text-sky-400" aria-hidden />
-          <h3 className="font-display font-semibold text-slate-100 text-base">Model information</h3>
+          <Box className="w-4 h-4 text-sky-400" />
+          <h3 className="font-bold text-slate-100 text-sm">Model information</h3>
         </div>
         {onClose && (
-          <button onClick={onClose} aria-label="Close model information panel" title="Close panel" className="icon-btn border-transparent bg-transparent">
-            <X className="w-4 h-4" aria-hidden />
+          <button onClick={onClose} aria-label="Close model information panel" className="text-slate-400 hover:text-white p-1">
+            <X className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      <div className="p-4 space-y-6 text-sm">
+      <div className="p-4 space-y-4">
 
-        {/* Project */}
-        <section className="space-y-2">
-          <div className="flex items-start justify-between gap-3">
-            <span className="font-display font-semibold text-slate-100 text-base leading-snug">{projectName}</span>
-            <span className={`pill shrink-0 ${isDemo ? 'pill-info' : 'pill-ok'}`}>{isDemo ? 'Demo' : 'Processed'}</span>
+        {/* Project Header Card */}
+        <div className="p-3 rounded-lg bg-aerospace-950/80 border border-slate-800 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-sky-300 text-sm truncate max-w-[180px]">{projectName}</span>
+            <span className={`px-1.5 py-0.5 rounded text-xs font-mono border ${
+              isDemo ? 'bg-sky-500/20 text-sky-300 border-sky-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+            }`}>
+              {isDemo ? 'DEMO MODE' : 'PROCESSED'}
+            </span>
           </div>
-          <p className="text-slate-400 leading-relaxed">
+          <p className="text-xs text-slate-400 font-mono leading-relaxed">
             {project?.isDemo
-              ? 'Demo sample: a real photogrammetry model bundled with the app.'
+              ? 'DEMO SAMPLE — Real photogrammetry model asset (public/demo/build.glb).'
               : isDemo
                 ? 'Demo-engine output (simulated reconstruction, not a real drone reconstruction).'
-                : 'Processed 3D digital twin GLB model.'}
+                : 'Processed 3D Digital Twin GLB model asset.'}
           </p>
-        </section>
+        </div>
 
-        {/* Mesh statistics */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-              <Layers className="w-4 h-4 text-sky-400" aria-hidden />
-              Mesh
+        {/* Photogrammetry Derived Mesh Statistics */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-sky-400" />
+              <span>3D GLB Structure</span>
             </h4>
-            <span className="text-xs text-slate-400">{metrics ? 'Measured from the loaded scene' : 'From project metadata'}</span>
+            <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+              {metrics ? 'Live Scene Metrics' : 'Loaded Mesh'}
+            </span>
           </div>
-          <dl className="grid grid-cols-2 gap-2">
-            <div className="stat-tile"><dt>Meshes</dt><dd>{meshes || 'Not available'}</dd></div>
-            <div className="stat-tile"><dt>Vertices</dt><dd>{vertices ? vertices.toLocaleString() : 'Not available'}</dd></div>
-            <div className="stat-tile col-span-2"><dt>Triangles</dt><dd>{faces ? faces.toLocaleString() : 'Not available'}</dd></div>
-          </dl>
-        </section>
 
-        {/* Bounding box */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-slate-100">Bounding box</h4>
-            <span className={`pill ${isCalibrated ? 'pill-ok' : 'pill-warn'}`}>{isCalibrated ? 'Calibrated' : 'Uncalibrated'}</span>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="p-2.5 rounded bg-aerospace-950/60 border border-slate-800">
+              <span className="text-xs text-slate-400 font-mono block">MESH COUNT</span>
+              <span className="font-mono font-bold text-slate-200 text-sm">{meshes || 'Not available'}</span>
+            </div>
+            <div className="p-2.5 rounded bg-aerospace-950/60 border border-slate-800">
+              <span className="text-xs text-slate-400 font-mono block font-bold">VERTICES</span>
+              <span className="font-mono font-bold text-sky-300 text-sm">{vertices ? vertices.toLocaleString() : 'Not available'}</span>
+            </div>
+            <div className="p-2.5 rounded bg-aerospace-950/60 border border-slate-800 col-span-2">
+              <span className="text-xs text-slate-400 font-mono block">POLYGON TRIANGLES</span>
+              <span className="font-mono font-bold text-slate-200 text-sm">{faces ? faces.toLocaleString() : 'Not available'}</span>
+            </div>
           </div>
-          <dl className="grid grid-cols-3 gap-2">
-            <div className="stat-tile"><dt>Length</dt><dd>{fmt(dims?.length)}</dd></div>
-            <div className="stat-tile"><dt>Width</dt><dd>{fmt(dims?.width)}</dd></div>
-            <div className="stat-tile"><dt>Height</dt><dd>{fmt(dims?.height)}</dd></div>
-          </dl>
-        </section>
+        </div>
 
-        {/* Scale note */}
-        <section className="rounded-[10px] border border-slate-700 bg-aerospace-950 p-3 space-y-1.5">
-          <div className="flex items-center gap-2 text-amber-400 font-medium">
-            <Info className="w-4 h-4" aria-hidden />
-            <span>Scale and accuracy</span>
+        {/* Bounding Box Dimensions */}
+        <div className="p-3 rounded-lg bg-aerospace-950/60 border border-slate-800 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-300 block">Bounding Box Dimensions</span>
+            <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${
+              isCalibrated ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+            }`}>
+              {isCalibrated ? 'CALIBRATED' : 'UNCALIBRATED'}
+            </span>
           </div>
-          <p className="leading-relaxed text-slate-400">
+
+          <div className="grid grid-cols-3 gap-1 font-mono text-slate-200 text-xs font-semibold text-center">
+            <div className="p-1.5 rounded bg-slate-900 border border-slate-800">
+              <span className="text-xs text-slate-400 block">LENGTH</span>
+              <span>{fmt(dims?.length)}</span>
+            </div>
+            <div className="p-1.5 rounded bg-slate-900 border border-slate-800">
+              <span className="text-xs text-slate-400 block">WIDTH</span>
+              <span>{fmt(dims?.width)}</span>
+            </div>
+            <div className="p-1.5 rounded bg-slate-900 border border-slate-800">
+              <span className="text-xs text-slate-400 block">HEIGHT</span>
+              <span>{fmt(dims?.height)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Scale Status Note */}
+        <div className="p-3 rounded-lg bg-aerospace-950 border border-slate-800 text-xs text-slate-400 space-y-1">
+          <div className="flex items-center gap-1.5 text-amber-400 font-mono font-semibold text-xs">
+            <Info className="w-3.5 h-3.5" />
+            <span>SCALE & ACCURACY STATUS</span>
+          </div>
+          <p className="leading-relaxed text-xs text-slate-400">
             {isCalibrated
-              ? 'Calibrated against a known reference distance. Dimensions are shown in the selected unit.'
-              : 'Uncalibrated. Dimensions are in model units. Use Calibrate to set a real-world scale.'}
+              ? 'Model is calibrated against known physical reference distance. Dimensions shown in the selected unit.'
+              : 'Model scale: Uncalibrated. Dimensions shown in model units. Calibrate using scale tool.'}
           </p>
-        </section>
+        </div>
 
-        {/* Telemetry */}
-        <section>
-          <h4 className="text-sm font-semibold text-slate-100 mb-3 flex items-center gap-2">
-            <Camera className="w-4 h-4 text-sky-400" aria-hidden />
-            Survey details{isDemo ? ' (simulated)' : ''}
+        {/* Survey Telemetry */}
+        <div>
+          <h4 className="text-xs font-medium text-slate-300 mb-2 flex items-center gap-1.5">
+            <Camera className="w-3.5 h-3.5 text-sky-400" />
+            <span>Survey Telemetry{isDemo ? ' (Simulated)' : ''}</span>
           </h4>
-          <dl className="divide-y divide-slate-700/70 rounded-[10px] border border-slate-700">
-            <div className="flex justify-between gap-4 px-3 py-2.5"><dt className="text-slate-400">Drone</dt><dd className="text-slate-100 text-right">{meta?.droneModel || 'Not available'}</dd></div>
-            <div className="flex justify-between gap-4 px-3 py-2.5"><dt className="text-slate-400">GPS</dt><dd className="readout text-slate-100 text-right text-[13px]">{gpsDisplay}</dd></div>
-            <div className="flex justify-between gap-4 px-3 py-2.5"><dt className="text-slate-400">Location</dt><dd className="text-slate-100 text-right">{meta?.locationName || 'Not available'}</dd></div>
-          </dl>
-        </section>
+          <div className="p-3 rounded-lg bg-aerospace-950/60 border border-slate-800 space-y-1.5 text-xs">
+            <div className="flex justify-between text-slate-300">
+              <span className="text-slate-400">Drone Model:</span>
+              <span className="font-medium">{meta?.droneModel || 'Not available'}</span>
+            </div>
+            <div className="flex justify-between text-slate-300">
+              <span className="text-slate-400">GPS Coordinates:</span>
+              <span className="font-mono text-slate-300">{gpsDisplay}</span>
+            </div>
+            <div className="flex justify-between text-slate-300">
+              <span className="text-slate-400">Location:</span>
+              <span className="font-medium">{meta?.locationName || 'Not available'}</span>
+            </div>
+          </div>
+        </div>
 
       </div>
     </aside>

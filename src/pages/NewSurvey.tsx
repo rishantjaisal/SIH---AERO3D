@@ -179,49 +179,49 @@ export const NewSurvey: React.FC = () => {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <Topbar title="New survey" />
+        <Topbar title="Create New Drone Survey" />
 
         <main id="main-content" className="p-6 max-w-4xl mx-auto w-full space-y-6">
 
           {/* Stepper Navigation */}
-          <div className="flex items-center justify-between p-4 card text-sm">
+          <div className="flex items-center justify-between p-4 rounded-xl glass-panel border border-slate-800 font-mono text-xs">
             <div className={`flex items-center gap-2 ${step >= 1 ? 'text-sky-400 font-bold' : 'text-slate-400'}`}>
               <span className={`w-6 h-6 rounded-full flex items-center justify-center border ${step >= 1 ? 'bg-sky-500/20 border-sky-400' : 'border-slate-700'}`}>01</span>
-              <span>Upload data</span>
+              <span>Upload Drone Data</span>
             </div>
             <div className="w-8 h-px bg-slate-800 hidden sm:block" />
             <div className={`flex items-center gap-2 ${step >= 2 ? 'text-sky-400 font-bold' : 'text-slate-400'}`}>
               <span className={`w-6 h-6 rounded-full flex items-center justify-center border ${step >= 2 ? 'bg-sky-500/20 border-sky-400' : 'border-slate-700'}`}>02</span>
-              <span>Details</span>
+              <span>Metadata & Location</span>
             </div>
             <div className="w-8 h-px bg-slate-800 hidden sm:block" />
             <div className={`flex items-center gap-2 ${step >= 3 ? 'text-sky-400 font-bold' : 'text-slate-400'}`}>
               <span className={`w-6 h-6 rounded-full flex items-center justify-center border ${step >= 3 ? 'bg-sky-500/20 border-sky-400' : 'border-slate-700'}`}>03</span>
-              <span>Equipment</span>
+              <span>Drone Equipment</span>
             </div>
             <div className="w-8 h-px bg-slate-800 hidden sm:block" />
             <div className={`flex items-center gap-2 ${step >= 4 ? 'text-sky-400 font-bold' : 'text-slate-400'}`}>
               <span className={`w-6 h-6 rounded-full flex items-center justify-center border ${step >= 4 ? 'bg-sky-500/20 border-sky-400' : 'border-slate-700'}`}>04</span>
-              <span>Review</span>
+              <span>Reconstruction Review</span>
             </div>
           </div>
 
           {/* Validation Error Alert */}
           {validationError && (
-            <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-center gap-3">
+            <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-mono flex items-center gap-3">
               <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
               <span>{validationError}</span>
             </div>
           )}
 
           {/* Step Form Container */}
-          <form onSubmit={handleSubmit} className="card-elevated p-6 sm:p-8 space-y-6">
+          <form onSubmit={handleSubmit} className="p-6 rounded-2xl glass-panel-elevated border border-slate-700/80 shadow-2xl space-y-6">
             
             {/* Step 1: Upload Drone Data */}
             {step === 1 && (
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-display text-2xl font-semibold text-slate-100">Upload drone footage or 3D assets *</h3>
+                  <h3 className="text-lg font-bold text-slate-100">Upload Drone Footage or 3D Assets *</h3>
                   <p className="text-xs text-slate-400">
                     Drop flight videos (MP4, MOV, MKV), overlapping image archives (JPG, PNG, ZIP), or existing 3D models (GLB, GLTF, OBJ, PLY).
                   </p>
@@ -249,7 +249,7 @@ export const NewSurvey: React.FC = () => {
                     <p className="font-semibold text-sm text-slate-200">
                       Drop drone footage or images here, or <span className="text-sky-400 underline">browse files</span>
                     </p>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-xs text-slate-400 font-mono">
                       Supported: MP4, MOV, MKV, JPG, PNG, ZIP, GLB, GLTF, OBJ (Max 250 MB per file)
                     </p>
                   </label>
@@ -258,14 +258,14 @@ export const NewSurvey: React.FC = () => {
                 {/* Selected Files List */}
                 {selectedFiles.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-slate-300">Selected files ({selectedFiles.length})</h4>
+                    <h4 className="text-xs font-mono text-slate-400 uppercase">Selected Files ({selectedFiles.length})</h4>
                     <div className="max-h-40 overflow-y-auto space-y-1.5 pr-2">
                       {selectedFiles.map((file, idx) => (
                         <div key={idx} className="flex items-center justify-between p-2 rounded bg-aerospace-950 border border-slate-800 text-xs">
                           <div className="flex items-center gap-2 truncate">
                             <File className="w-4 h-4 text-sky-400 shrink-0" />
-                            <span className="truncate text-slate-100 readout text-sm">{file.name}</span>
-                            <span className="text-xs text-slate-400 readout">({(file.size / (1024 * 1024)).toFixed(1)} MB)</span>
+                            <span className="truncate text-slate-200 font-mono">{file.name}</span>
+                            <span className="text-xs text-slate-400 font-mono">({(file.size / (1024 * 1024)).toFixed(1)} MB)</span>
                           </div>
                           <button type="button" onClick={() => removeFile(idx)} aria-label="Remove file" className="text-slate-400 hover:text-rose-400 p-1">
                             <X className="w-3.5 h-3.5" />
@@ -282,53 +282,53 @@ export const NewSurvey: React.FC = () => {
             {step === 2 && (
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-display text-2xl font-semibold text-slate-100">Survey details</h3>
-                  <p className="text-sm text-slate-400 mt-1">Define survey location name and optional site coordinates.</p>
+                  <h3 className="text-lg font-bold text-slate-100">Survey Metadata & Location</h3>
+                  <p className="text-xs text-slate-400">Define survey location name and optional site coordinates.</p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div>
-                    <label className="field-label">Project title *</label>
+                    <label className="block text-slate-300 font-medium mb-1">Project Title *</label>
                     <input
                       type="text"
                       required
                       value={formData.projectName}
                       onChange={e => setFormData({ ...formData, projectName: e.target.value })}
                       placeholder="e.g. Industrial Complex Drone Survey"
-                      className="field"
+                      className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-sky-400"
                     />
                   </div>
 
                   <div>
-                    <label className="field-label">Location name</label>
+                    <label className="block text-slate-300 font-medium mb-1">Location Name</label>
                     <input
                       type="text"
                       value={formData.location}
                       onChange={e => setFormData({ ...formData, location: e.target.value })}
                       placeholder="e.g. Survey Site Location"
-                      className="field"
+                      className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-sky-400"
                     />
                   </div>
 
                   <div>
-                    <label className="field-label">GPS latitude (°N), optional</label>
+                    <label className="block text-slate-300 font-medium mb-1">GPS Latitude (°N) (Optional)</label>
                     <input
                       type="text"
                       value={formData.latitude}
                       onChange={e => setFormData({ ...formData, latitude: e.target.value })}
                       placeholder="Leave empty if GPS unavailable"
-                      className="field"
+                      className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 font-mono focus:outline-none focus:border-sky-400"
                     />
                   </div>
 
                   <div>
-                    <label className="field-label">GPS longitude (°E), optional</label>
+                    <label className="block text-slate-300 font-medium mb-1">GPS Longitude (°E) (Optional)</label>
                     <input
                       type="text"
                       value={formData.longitude}
                       onChange={e => setFormData({ ...formData, longitude: e.target.value })}
                       placeholder="Leave empty if GPS unavailable"
-                      className="field"
+                      className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 font-mono focus:outline-none focus:border-sky-400"
                     />
                   </div>
                 </div>
@@ -339,52 +339,52 @@ export const NewSurvey: React.FC = () => {
             {step === 3 && (
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-display text-2xl font-semibold text-slate-100">Equipment and flight (optional)</h3>
+                  <h3 className="text-lg font-bold text-slate-100">Equipment & Flight Specifications (Optional)</h3>
                   <p className="text-xs text-slate-400">Specify hardware sensors or leave blank.</p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div>
-                    <label className="field-label">Drone model</label>
+                    <label className="block text-slate-300 font-medium mb-1">Drone Hardware Model</label>
                     <input
                       type="text"
                       value={formData.droneModel}
                       onChange={e => setFormData({ ...formData, droneModel: e.target.value })}
                       placeholder="e.g. DJI Quadcopter / Unspecified"
-                      className="field"
+                      className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-sky-400"
                     />
                   </div>
 
                   <div>
-                    <label className="field-label">Camera sensor</label>
+                    <label className="block text-slate-300 font-medium mb-1">Camera Sensor Specs</label>
                     <input
                       type="text"
                       value={formData.cameraModel}
                       onChange={e => setFormData({ ...formData, cameraModel: e.target.value })}
                       placeholder="e.g. 20MP / 4K RGB Camera"
-                      className="field"
+                      className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-sky-400"
                     />
                   </div>
 
                   <div>
-                    <label className="field-label">Flight altitude</label>
+                    <label className="block text-slate-300 font-medium mb-1">Flight Altitude</label>
                     <input
                       type="text"
                       value={formData.flightAltitude}
                       onChange={e => setFormData({ ...formData, flightAltitude: e.target.value })}
                       placeholder="e.g. 50 m"
-                      className="field"
+                      className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 font-mono focus:outline-none focus:border-sky-400"
                     />
                   </div>
 
                   <div>
-                    <label className="field-label">Ground sample distance (GSD)</label>
+                    <label className="block text-slate-300 font-medium mb-1">Target Ground Sample Distance (GSD)</label>
                     <input
                       type="text"
                       value={formData.gsd}
                       onChange={e => setFormData({ ...formData, gsd: e.target.value })}
                       placeholder="e.g. 1.0 cm/px"
-                      className="field"
+                      className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 font-mono focus:outline-none focus:border-sky-400"
                     />
                   </div>
                 </div>
@@ -395,14 +395,14 @@ export const NewSurvey: React.FC = () => {
             {step === 4 && (
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-display text-2xl font-semibold text-slate-100">Review and start</h3>
+                  <h3 className="text-lg font-bold text-slate-100">Review & Initiate Reconstruction</h3>
                   <p className="text-xs text-slate-400">Confirm parameters before executing photogrammetry pipeline.</p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-aerospace-950/80 border border-slate-800 space-y-3 text-xs">
                   <div className="flex justify-between border-b border-slate-800 pb-2">
                     <span className="text-slate-400">Reconstruction Engine:</span>
-                    <span className="font-mono font-bold text-sky-300">{(providerStatus?.mode || 'demo') === 'demo' ? 'Demo engine' : providerStatus?.mode}</span>
+                    <span className="font-mono font-bold text-sky-300">{(providerStatus?.mode || 'demo').toUpperCase()} PROVIDER</span>
                   </div>
                   <div className="flex justify-between border-b border-slate-800 pb-2">
                     <span className="text-slate-400">Project Title:</span>
@@ -414,27 +414,27 @@ export const NewSurvey: React.FC = () => {
                   </div>
                   <div className="flex justify-between border-b border-slate-800 pb-2">
                     <span className="text-slate-400">GPS Coordinates:</span>
-                    <span className="text-slate-100">
+                    <span className="font-mono text-slate-300">
                       {formData.latitude && formData.longitude ? `${formData.latitude}°N, ${formData.longitude}°E` : 'GPS Unavailable'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Uploaded Files:</span>
-                    <span className="text-emerald-400 font-medium">{selectedFiles.length} file(s)</span>
+                    <span className="font-mono text-emerald-400 font-semibold">{selectedFiles.length} File(s)</span>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Wizard Nav Controls */}
-            <div className="flex items-center justify-between pt-4 border-t border-slate-700">
+            <div className="flex items-center justify-between pt-4 border-t border-slate-800">
               {step > 1 ? (
                 <button
                   type="button"
                   onClick={() => setStep(s => s - 1)}
-                  className="btn btn-secondary"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-aerospace-850 hover:bg-aerospace-800 text-slate-300 text-xs font-semibold"
                 >
-                  <ArrowLeft className="w-4 h-4" aria-hidden />
+                  <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Back</span>
                 </button>
               ) : <div />}
@@ -443,23 +443,23 @@ export const NewSurvey: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleNextStep}
-                  className="btn btn-primary"
+                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-aerospace-950 font-bold text-xs shadow-md"
                 >
-                  <span>Next step</span>
-                  <ArrowRight className="w-4 h-4" aria-hidden />
+                  <span>Next Step</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               ) : (
                 <button
                   type="submit"
                   disabled={loading}
-                  className="btn btn-primary disabled:opacity-60"
+                  className="flex items-center gap-2 px-6 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-aerospace-950 font-bold text-xs shadow-lg transition-all"
                 >
                   {loading ? (
-                    <span>Uploading…</span>
+                    <span>Uploading Drone Data...</span>
                   ) : (
                     <>
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>Start reconstruction</span>
+                      <span>Execute 3D Reconstruction</span>
                     </>
                   )}
                 </button>
