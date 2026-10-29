@@ -3,14 +3,14 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { story, sm, clamp, prefersReducedMotion } from './story';
+import { resolveHeroModelUrl, FALLBACK_MODEL_URL } from './heroModel';
 
 /**
- * Scroll-driven hero scene: the project's real photogrammetry model (public/demo/build.glb) sits on a
+ * Scroll-driven hero scene: the project's real photogrammetry model (public/models/hero/hero-building.glb, falling back to public/demo/build.glb) sits on a
  * "digital twin" base plate. As the page scrolls a survey drone flies a lawnmower pattern, the point
  * cloud accumulates, the mesh wireframe is built, and finally AI-style detections + measurements appear.
  */
 
-const MODEL_URL = '/demo/build.glb';
 const SITE_WIDTH = 72; // world units the model is scaled to (longest horizontal side)
 
 const CYAN = 0x38bdf8;
@@ -93,8 +93,8 @@ function makeShared(): Shared {
 /* ------------------------------------------------------------------ */
 /* Photogrammetry model + point cloud + wireframe                      */
 /* ------------------------------------------------------------------ */
-const SiteModel: React.FC<{ shared: Shared }> = ({ shared }) => {
-  const gltf = useGLTF(MODEL_URL);
+const SiteModel: React.FC<{ shared: Shared; url: string }> = ({ shared, url }) => {
+  const gltf = useGLTF(url);
   const { gl } = useThree();
 
   const built = useMemo(() => {
@@ -993,6 +993,12 @@ class SceneBoundary extends React.Component<{ onError: () => void; children: Rea
 export const LandingScene: React.FC<{ onError: () => void; active?: boolean }> = ({ onError, active = true }) => {
   const shared = useMemo(makeShared, []);
   const mobile = typeof window !== 'undefined' && window.innerWidth < 820;
+  const [modelUrl, setModelUrl] = React.useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    resolveHeroModelUrl().then(u => { if (alive) setModelUrl(u); });
+    return () => { alive = false; };
+  }, []);
 
   return (
     <SceneBoundary onError={onError}>
@@ -1012,7 +1018,7 @@ export const LandingScene: React.FC<{ onError: () => void; active?: boolean }> =
         <Stage shared={shared} />
         <ScanSlab shared={shared} />
         <Suspense fallback={null}>
-          <SiteModel shared={shared} />
+          {modelUrl && <SiteModel shared={shared} url={modelUrl} />}
         </Suspense>
         <Drone shared={shared} />
         <Analysis shared={shared} />
@@ -1022,4 +1028,4 @@ export const LandingScene: React.FC<{ onError: () => void; active?: boolean }> =
   );
 };
 
-useGLTF.preload(MODEL_URL);
+resolveHeroModelUrl().then(u => useGLTF.preload(u)).catch(() => useGLTF.preload(FALLBACK_MODEL_URL));

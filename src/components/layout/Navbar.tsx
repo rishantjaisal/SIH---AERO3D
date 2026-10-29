@@ -30,7 +30,7 @@ export const Navbar: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-lg tracking-wider text-slate-100 font-mono">AERO<span className="text-sky-400">3D</span></span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">SIH 2026</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">INNOTECH 2026</span>
             </div>
             <p className="text-[10px] text-slate-400 tracking-wide font-sans hidden sm:block">Intelligent Drone Digital Twin</p>
           </div>
