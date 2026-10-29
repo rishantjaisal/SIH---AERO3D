@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import { BuildingModel, ModelMetrics } from './BuildingModel';
 import { InspectionMarkers } from './InspectionMarkers';
 import { MeasurementTool } from './MeasurementTool';
+import { DimensionLines } from './DimensionLines';
+import { LengthUnit } from '../../utils/units';
 import { ActiveTool, RenderMode, CameraPreset } from './FloatingToolbar';
 import { InspectionMarker, Measurement3D, Project } from '../../types';
 import { AlertTriangle, RefreshCw, EyeOff, ArrowLeft } from 'lucide-react';
@@ -24,6 +26,10 @@ interface ThreeCanvasProps {
   projectId: string;
   modelUrl: string;
   project?: Project;
+  showDimensions?: boolean;
+  showBoundingBox?: boolean;
+  showLabels?: boolean;
+  unit?: LengthUnit;
   onMetricsUpdate?: (metrics: ModelMetrics) => void;
 }
 
@@ -99,6 +105,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   projectId,
   modelUrl,
   project,
+  showDimensions = false,
+  showBoundingBox = false,
+  showLabels = true,
+  unit = 'm',
   onMetricsUpdate
 }) => {
   const navigate = useNavigate();
@@ -147,7 +157,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
   // Click handler on 3D scene surface
   const handlePointerDown = (e: any) => {
-    if (activeTool === 'orbit') return;
+    if (activeTool === 'orbit' || !e?.point) return;
     e.stopPropagation();
 
     const point: [number, number, number] = [e.point.x, e.point.y, e.point.z];
@@ -186,7 +196,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     }
   };
 
-  const gridScale = modelMetrics ? Math.max(80, modelMetrics.maxDimension * 3) : 100;
+  // Grid cells scale with the model so small models (a few units across) are not dwarfed by a 2-unit grid
+  const gridCell = modelMetrics ? Math.max(0.1, modelMetrics.maxDimension / 8) : 2;
+  const gridScale = modelMetrics ? Math.max(gridCell * 40, modelMetrics.maxDimension * 6) : 100;
 
   return (
     <div className="w-full h-full relative bg-aerospace-950 overflow-hidden">
@@ -252,7 +264,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             shadows
             gl={{ preserveDrawingBuffer: true, antialias: true, powerPreference: 'high-performance' }}
             camera={{ position: [25, 20, 25], fov: 45 }}
-            onPointerDown={handlePointerDown}
           >
             {/* Orbit Controls */}
             <OrbitControls
@@ -277,10 +288,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               <Grid
                 position={[0, -0.01, 0]}
                 args={[gridScale, gridScale]}
-                cellSize={2}
+                cellSize={gridCell}
                 cellThickness={0.8}
                 cellColor="#1f3152"
-                sectionSize={10}
+                sectionSize={gridCell * 5}
                 sectionThickness={1.5}
                 sectionColor="#38bdf8"
                 fadeDistance={gridScale * 0.8}
@@ -302,6 +313,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               renderMode={renderMode}
               modelUrl={modelUrl}
               project={project}
+              onModelPointerDown={handlePointerDown}
               onModelLoaded={handleModelLoaded}
               onHasPointcloudChange={setHasNativePointCloud}
             />
@@ -315,6 +327,20 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               measurements={measurements}
               scaleFactor={scaleFactor}
               isCalibrated={isCalibrated}
+              unit={unit}
+              showLabels={showLabels}
+              pointRadius={modelMetrics ? Math.max(0.01, modelMetrics.maxDimension * 0.012) : 0.25}
+            />
+
+            {/* Model extents: Length / Width / Height guide lines and optional bounding box */}
+            <DimensionLines
+              metrics={modelMetrics}
+              showDimensions={showDimensions}
+              showBoundingBox={showBoundingBox}
+              showLabels={showLabels}
+              isCalibrated={isCalibrated}
+              scaleFactor={scaleFactor}
+              unit={unit}
             />
           </Canvas>
         </Suspense>

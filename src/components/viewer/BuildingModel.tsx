@@ -12,6 +12,9 @@ export interface ModelMetrics {
   center: THREE.Vector3;
   size: THREE.Vector3;
   hasNativePointCloud: boolean;
+  /** world-space bounds of the model after it was centred / grounded */
+  worldMin: THREE.Vector3;
+  worldMax: THREE.Vector3;
 }
 
 interface BuildingModelProps {
@@ -20,6 +23,7 @@ interface BuildingModelProps {
   project?: Project;
   onModelLoaded?: (metrics: ModelMetrics) => void;
   onHasPointcloudChange?: (hasPointCloud: boolean) => void;
+  onModelPointerDown?: (e: any) => void;
 }
 
 const GLBModelMesh: React.FC<{
@@ -27,7 +31,8 @@ const GLBModelMesh: React.FC<{
   renderMode: 'textured' | 'wireframe' | 'solid' | 'pointcloud';
   onModelLoaded?: (metrics: ModelMetrics) => void;
   onHasPointcloudChange?: (hasPointCloud: boolean) => void;
-}> = ({ url, renderMode, onModelLoaded, onHasPointcloudChange }) => {
+  onModelPointerDown?: (e: any) => void;
+}> = ({ url, renderMode, onModelLoaded, onHasPointcloudChange, onModelPointerDown }) => {
   const { scene } = useGLTF(url);
   const reportedUrlRef = useRef<string | null>(null);
 
@@ -71,6 +76,9 @@ const GLBModelMesh: React.FC<{
 
     // Center model at origin with bottom resting at y=0
     cloned.position.set(-center.x, -box.min.y, -center.z);
+    // Recompute world bounds after the transform so dimension guides match what is actually rendered
+    cloned.updateWorldMatrix(true, true);
+    const worldBox = new THREE.Box3().setFromObject(cloned);
 
     const modelMetrics: ModelMetrics = {
       vertices,
@@ -84,7 +92,9 @@ const GLBModelMesh: React.FC<{
       maxDimension: maxDim,
       center,
       size,
-      hasNativePointCloud: hasNativePoints
+      hasNativePointCloud: hasNativePoints,
+      worldMin: worldBox.min.clone(),
+      worldMax: worldBox.max.clone()
     };
 
     return { clonedScene: cloned, metrics: modelMetrics };
@@ -157,17 +167,16 @@ const GLBModelMesh: React.FC<{
     });
   }, [clonedScene, renderMode]);
 
-  return <primitive object={clonedScene} />;
+  return <primitive object={clonedScene} onPointerDown={onModelPointerDown} />;
 };
 
 export const BuildingModel: React.FC<BuildingModelProps> = ({
   renderMode,
   modelUrl,
   onModelLoaded,
-  onHasPointcloudChange
+  onHasPointcloudChange,
+  onModelPointerDown
 }) => {
-  console.log('[Aero3D BuildingModel]', { modelUrl });
-
   if (!modelUrl) {
     throw new Error('This project does not have a 3D model asset specified.');
   }
@@ -179,6 +188,7 @@ export const BuildingModel: React.FC<BuildingModelProps> = ({
       renderMode={renderMode}
       onModelLoaded={onModelLoaded}
       onHasPointcloudChange={onHasPointcloudChange}
+      onModelPointerDown={onModelPointerDown}
     />
   );
 };

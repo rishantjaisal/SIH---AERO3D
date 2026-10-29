@@ -13,8 +13,11 @@ import {
   Box,
   Scale,
   Sparkles,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Ruler as RulerIcon,
+  Type
 } from 'lucide-react';
+import { LENGTH_UNITS, LengthUnit } from '../../utils/units';
 
 export type ActiveTool = 'orbit' | 'measure-distance' | 'measure-height' | 'add-marker';
 export type RenderMode = 'textured' | 'wireframe' | 'solid' | 'pointcloud';
@@ -33,6 +36,14 @@ interface FloatingToolbarProps {
   isCalibrated: boolean;
   clearMeasurements: () => void;
   measurementCount: number;
+  showDimensions: boolean;
+  setShowDimensions: (v: boolean) => void;
+  showBoundingBox: boolean;
+  setShowBoundingBox: (v: boolean) => void;
+  showLabels: boolean;
+  setShowLabels: (v: boolean) => void;
+  unit: LengthUnit;
+  setUnit: (u: LengthUnit) => void;
 }
 
 export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
@@ -47,9 +58,22 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
   onOpenCalibration,
   isCalibrated,
   clearMeasurements,
-  measurementCount
+  measurementCount,
+  showDimensions,
+  setShowDimensions,
+  showBoundingBox,
+  setShowBoundingBox,
+  showLabels,
+  setShowLabels,
+  unit,
+  setUnit
 }) => {
+  const toggleCls = (on: boolean) =>
+    `flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-mono font-medium border transition-all ${
+      on ? 'bg-sky-500/20 text-sky-300 border-sky-500/40' : 'bg-aerospace-950/80 text-slate-400 border-slate-800 hover:text-slate-200'
+    }`;
   return (
+    <>
     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 max-w-full overflow-x-auto p-1.5 rounded-xl glass-panel-elevated shadow-2xl border border-slate-700/80">
       
       {/* Tool Selection Group */}
@@ -209,5 +233,33 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
       </div>
 
     </div>
+
+    {/* Model annotation controls (second row so the main toolbar keeps its layout) */}
+    <div className="absolute top-[84px] left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 p-1 rounded-lg glass-panel border border-slate-700/80 max-w-full overflow-x-auto">
+      <button onClick={() => setShowDimensions(!showDimensions)} className={toggleCls(showDimensions)} aria-pressed={showDimensions} title="Show Length / Width / Height guide lines">
+        <RulerIcon className="w-3.5 h-3.5" />
+        <span>Dimensions</span>
+      </button>
+      <button onClick={() => setShowBoundingBox(!showBoundingBox)} className={toggleCls(showBoundingBox)} aria-pressed={showBoundingBox} title="Show model bounding box (Box3)">
+        <Box className="w-3.5 h-3.5" />
+        <span>Box3</span>
+      </button>
+      <button onClick={() => setShowLabels(!showLabels)} className={toggleCls(showLabels)} aria-pressed={showLabels} title="Show dimension and measurement labels">
+        <Type className="w-3.5 h-3.5" />
+        <span>Labels</span>
+      </button>
+      <select
+        value={unit}
+        onChange={e => setUnit(e.target.value as LengthUnit)}
+        disabled={!isCalibrated}
+        title={isCalibrated ? 'Display unit' : 'Calibrate the scale to enable real-world units'}
+        className="px-2 py-1.5 rounded-md text-[11px] font-mono bg-aerospace-950/80 border border-slate-800 text-slate-300 disabled:opacity-50"
+      >
+        {LENGTH_UNITS.map(u => (
+          <option key={u} value={u}>{u}</option>
+        ))}
+      </select>
+    </div>
+    </>
   );
 };

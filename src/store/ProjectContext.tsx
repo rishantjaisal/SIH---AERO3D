@@ -139,6 +139,7 @@ interface ProjectContextType {
   scaleFactor: number;
   setScaleFactor: (factor: number) => void;
   isCalibrated: boolean;
+  resetCalibration: () => void;
   providerStatus: { mode: string; name: string; configured: boolean; message: string };
   health: SystemHealth | null;
   refreshData: () => Promise<void>;
@@ -242,6 +243,12 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setMeasurements([]);
   }, []);
 
+  // Calibration belongs to the model it was measured on; viewers reset it when a different project opens
+  const resetCalibration = useCallback(() => {
+    setScaleFactor(1.0);
+    setIsCalibrated(false);
+  }, []);
+
   const handleSetScaleFactor = (factor: number) => {
     setScaleFactor(factor);
     setIsCalibrated(true);
@@ -310,6 +317,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         scaleFactor,
         setScaleFactor: handleSetScaleFactor,
         isCalibrated,
+        resetCalibration,
         providerStatus,
         health,
         refreshData,

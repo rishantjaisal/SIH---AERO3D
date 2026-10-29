@@ -1,19 +1,26 @@
 import React from 'react';
 import { Html, Line } from '@react-three/drei';
 import { Measurement3D } from '../../types';
+import { formatLength, LengthUnit } from '../../utils/units';
 
 interface MeasurementToolProps {
   activePoints: Array<[number, number, number]>;
   measurements: Measurement3D[];
   scaleFactor: number;
   isCalibrated: boolean;
+  unit?: LengthUnit;
+  showLabels?: boolean;
+  pointRadius?: number;
 }
 
 export const MeasurementTool: React.FC<MeasurementToolProps> = ({
   activePoints,
   measurements,
   scaleFactor,
-  isCalibrated
+  isCalibrated,
+  unit = 'm',
+  showLabels = true,
+  pointRadius = 0.25
 }) => {
   return (
     <group>
@@ -22,7 +29,7 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
         <group>
           {activePoints.map((pt, idx) => (
             <mesh key={`active-pt-${idx}`} position={pt}>
-              <sphereGeometry args={[0.25, 16, 16]} />
+              <sphereGeometry args={[pointRadius, 16, 16]} />
               <meshBasicMaterial color={0x38bdf8} />
             </mesh>
           ))}
@@ -51,11 +58,11 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
           <group key={meas.id}>
             {/* End Point Spheres */}
             <mesh position={p1}>
-              <sphereGeometry args={[0.2, 16, 16]} />
+              <sphereGeometry args={[pointRadius * 0.8, 16, 16]} />
               <meshBasicMaterial color={0x10b981} />
             </mesh>
             <mesh position={p2}>
-              <sphereGeometry args={[0.2, 16, 16]} />
+              <sphereGeometry args={[pointRadius * 0.8, 16, 16]} />
               <meshBasicMaterial color={0x10b981} />
             </mesh>
 
@@ -67,14 +74,16 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
             />
 
             {/* Value Overlay Label */}
-            <Html position={midPoint} center distanceFactor={25} zIndexRange={[100, 0]}>
-              <div className="px-2.5 py-1 rounded bg-aerospace-900/90 border border-emerald-500/50 text-emerald-400 font-mono text-xs font-bold shadow-lg flex flex-col items-center whitespace-nowrap">
-                <span>{(isCalibrated ? meas.value * scaleFactor : meas.value).toFixed(2)} {isCalibrated ? 'm' : 'u'}</span>
-                {!isCalibrated && (
-                  <span className="text-[8px] text-amber-400 uppercase font-sans">Model units (uncalibrated)</span>
-                )}
-              </div>
-            </Html>
+            {showLabels && (
+              <Html position={midPoint} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+                <div className="px-2.5 py-1 rounded bg-aerospace-900/90 border border-emerald-500/50 text-emerald-400 font-mono text-xs font-bold shadow-lg flex flex-col items-center whitespace-nowrap pointer-events-none">
+                  <span>{formatLength(meas.value, { calibrated: isCalibrated, scaleFactor, unit }) ?? '—'}</span>
+                  {!isCalibrated && (
+                    <span className="text-[8px] text-amber-400 uppercase font-sans">Model units (uncalibrated)</span>
+                  )}
+                </div>
+              </Html>
+            )}
           </group>
         );
       })}
