@@ -52,7 +52,7 @@ export const InspectionMarkers: React.FC<InspectionMarkersProps> = ({
                   <div className="absolute left-8 -top-12 w-64 glass-panel-elevated p-3 rounded-lg text-slate-100 text-xs shadow-2xl z-50 pointer-events-auto border border-sky-500/40 animate-in fade-in zoom-in-95">
                     <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 mb-2">
                       <div className="flex items-center gap-1.5">
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono uppercase font-bold ${
+                        <span className={`px-1.5 py-0.5 rounded text-xs font-mono uppercase font-bold ${
                           marker.severity === 'High' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                         }`}>
                           {marker.severity} {marker.category}
@@ -70,11 +70,11 @@ export const InspectionMarkers: React.FC<InspectionMarkersProps> = ({
                     </div>
 
                     <h4 className="font-bold text-sky-300 text-xs mb-1">{marker.label}</h4>
-                    <p className="text-slate-300 text-[11px] leading-relaxed mb-2 bg-aerospace-950/60 p-1.5 rounded border border-slate-800 font-sans">
+                    <p className="text-slate-300 text-xs leading-relaxed mb-2 bg-aerospace-950/60 p-1.5 rounded border border-slate-800 font-sans">
                       {marker.note}
                     </p>
 
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                    <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
                       <span>Coord: [{marker.position.map(n => n.toFixed(1)).join(', ')}]</span>
                       {onDeleteMarker && (
                         <button

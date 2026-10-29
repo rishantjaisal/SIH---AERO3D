@@ -175,7 +175,7 @@ export const LandingPage: React.FC = () => {
       <div className="ln-root flex flex-col flex-1">
         <Navbar />
 
-        <main className="flex-1">
+        <main id="main-content" className="flex-1">
           <div className="ln-story" ref={storyRef}>
             {/* 0 — hero */}
             <section className="ln-sec" ref={setSec(0)}>
@@ -236,12 +236,12 @@ export const LandingPage: React.FC = () => {
                   <span className="ln-grad">textured mesh.</span>
                 </h2>
                 <p className="ln-p mt-4 ln-rv" style={{ ['--d' as string]: 2 }}>
-                  A pluggable photogrammetry layer turns frames into a dense cloud, then a watertight mesh with baked texture. Choose COLMAP locally, Polycam in the cloud, or the offline demo engine.
+                  Extracted frames feed a photogrammetry engine that produces a textured GLB mesh. Today the demo runs offline on bundled models, and you can upload a finished .glb; COLMAP and Polycam run-through is not wired up yet.
                 </p>
                 <div className="ln-chips mt-5 ln-rv" style={{ ['--d' as string]: 3 }}>
-                  <span className="ln-chip">COLMAP</span>
-                  <span className="ln-chip">Polycam API</span>
-                  <span className="ln-chip">GLB output</span>
+                  <span className="ln-chip">GLB upload works</span>
+                  <span className="ln-chip">Demo engine: offline</span>
+                  <span className="ln-chip amber">COLMAP / Polycam: planned</span>
                 </div>
               </div>
             </section>
@@ -257,11 +257,11 @@ export const LandingPage: React.FC = () => {
                   <span className="ln-grad">map it.</span>
                 </h2>
                 <p className="ln-p mt-4 ln-rv" style={{ ['--d' as string]: 2 }}>
-                  Raycasted distance, height and area tools, scene classification, and a Leaflet GIS view synced to the model. Overlays here are an illustration on the demo site.
+                  Click two points to measure distance or height, calibrate the scale, and switch units. A Leaflet map shows the survey location. Scene labels on this page are an illustration, not live detections.
                 </p>
                 <div className="ln-chips mt-5 ln-rv" style={{ ['--d' as string]: 3 }}>
-                  <span className="ln-chip">Distance · Height · Area</span>
-                  <span className="ln-chip amber">GIS sync</span>
+                  <span className="ln-chip">Distance · Height · Calibration</span>
+                  <span className="ln-chip amber">GIS map</span>
                 </div>
               </div>
             </section>
@@ -294,22 +294,24 @@ export const LandingPage: React.FC = () => {
           <section className="ln-after py-24">
             <div className="max-w-7xl mx-auto px-4 lg:px-8">
               <div className="text-center max-w-2xl mx-auto mb-14 space-y-3">
-                <div className="ln-eyebrow justify-center"><i /> Built for aerospace &amp; engineering</div>
-                <h2 className="ln-display ln-h2">Professional drone mapping capabilities</h2>
+                <div className="ln-eyebrow justify-center"><i /> What is implemented</div>
+                <h2 className="ln-display ln-h2">What works today</h2>
+                <p className="text-slate-300 text-sm">Each capability is labelled as working, demo data, or partly built.</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {[
-                  { I: Box, t: 'High-performance 3D WebGL', d: 'Render dense GLB digital twin models in the browser using Three.js and React Three Fiber, with no plugin installation.' },
-                  { I: BrainCircuit, t: 'AI scene intelligence', d: 'Classify buildings, roofs, pavement, vegetation, vehicles and facade cracks with confidence scoring.' },
-                  { I: Ruler, t: '3D measurement toolkit', d: 'Raycasted distance, elevation delta and surface area with user-defined scale calibration.' },
-                  { I: Map, t: 'GIS coordinate sync', d: 'Leaflet split-screen mapping with satellite overlays, survey boundary polygons and GPS tagging.' },
-                  { I: Cpu, t: 'Provider abstraction', d: 'Backend proxy layer for COLMAP and Polycam with no client-side secrets and an offline demo fallback.' },
-                  { I: FileText, t: 'Executive report generator', d: 'Export inspection reports with 3D snapshots, coordinate summaries and structural findings.' }
-                ].map(({ I, t, d }) => (
+                  { I: Box, t: '3D viewer in the browser', st: 'Working', d: 'Render GLB models with Three.js and React Three Fiber, switch between textured, wireframe, solid and point-cloud views, with no plugin to install.' },
+                  { I: Ruler, t: 'Dimensions and measurement', st: 'Working', d: 'Length, width and height guide lines, two-point distance and height measurement, scale calibration and unit conversion.' },
+                  { I: Map, t: 'GIS location map', st: 'Working', d: 'A Leaflet map with dark, street and satellite layers shows the survey location and boundary.' },
+                  { I: FileText, t: 'Survey report', st: 'Working', d: 'A printable inspection report for each project; use your browser\'s Print dialog to save it as PDF.' },
+                  { I: BrainCircuit, t: 'AI scene intelligence', st: 'Demo data', d: 'Object detections are sample data for the bundled demo project only. No detector runs on uploaded projects yet.' },
+                  { I: Cpu, t: 'Reconstruction engines', st: 'Partly built', d: 'FFmpeg frame extraction and a provider layer exist. Running COLMAP or Polycam end to end is not implemented; upload a finished .glb for now.' }
+                ].map(({ I, t, d, st }) => (
                   <div key={t} className="ln-feat">
                     <div className="ic"><I className="w-5 h-5" /></div>
                     <h3 className="ln-display font-bold text-lg text-slate-100">{t}</h3>
-                    <p className="text-slate-400 text-sm leading-relaxed mt-2">{d}</p>
+                    <span className={`inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full border ${st === 'Working' ? 'text-emerald-300 border-emerald-500/40 bg-emerald-500/10' : 'text-amber-300 border-amber-500/40 bg-amber-500/10'}`}>{st}</span>
+                    <p className="text-slate-300 text-sm leading-relaxed mt-3">{d}</p>
                   </div>
                 ))}
               </div>
@@ -317,11 +319,11 @@ export const LandingPage: React.FC = () => {
           </section>
         </main>
 
-        <footer className="border-t border-slate-800/80 bg-aerospace-950 py-8 text-center text-xs text-slate-500 font-mono">
+        <footer className="border-t border-slate-800/80 bg-aerospace-950 py-8 text-center text-xs text-slate-400 font-mono">
           <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
               <span className="text-slate-300 font-bold">Aero3D Intelligence</span> © 2026 — INNOTECH Project
-              <div className="mt-1 text-[10px] text-slate-500">
+              <div className="mt-1 text-xs text-slate-400">
                 Homepage 3D model: Drone Building Scans — Matthew Guertin, 2026.{' '}
                 <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline hover:text-sky-300">CC BY 4.0</a>. Optimized for web.
               </div>

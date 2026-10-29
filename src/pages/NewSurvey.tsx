@@ -181,26 +181,26 @@ export const NewSurvey: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         <Topbar title="Create New Drone Survey" />
 
-        <main className="p-6 max-w-4xl mx-auto w-full space-y-6">
+        <main id="main-content" className="p-6 max-w-4xl mx-auto w-full space-y-6">
 
           {/* Stepper Navigation */}
           <div className="flex items-center justify-between p-4 rounded-xl glass-panel border border-slate-800 font-mono text-xs">
-            <div className={`flex items-center gap-2 ${step >= 1 ? 'text-sky-400 font-bold' : 'text-slate-500'}`}>
+            <div className={`flex items-center gap-2 ${step >= 1 ? 'text-sky-400 font-bold' : 'text-slate-400'}`}>
               <span className={`w-6 h-6 rounded-full flex items-center justify-center border ${step >= 1 ? 'bg-sky-500/20 border-sky-400' : 'border-slate-700'}`}>01</span>
               <span>Upload Drone Data</span>
             </div>
             <div className="w-8 h-px bg-slate-800 hidden sm:block" />
-            <div className={`flex items-center gap-2 ${step >= 2 ? 'text-sky-400 font-bold' : 'text-slate-500'}`}>
+            <div className={`flex items-center gap-2 ${step >= 2 ? 'text-sky-400 font-bold' : 'text-slate-400'}`}>
               <span className={`w-6 h-6 rounded-full flex items-center justify-center border ${step >= 2 ? 'bg-sky-500/20 border-sky-400' : 'border-slate-700'}`}>02</span>
               <span>Metadata & Location</span>
             </div>
             <div className="w-8 h-px bg-slate-800 hidden sm:block" />
-            <div className={`flex items-center gap-2 ${step >= 3 ? 'text-sky-400 font-bold' : 'text-slate-500'}`}>
+            <div className={`flex items-center gap-2 ${step >= 3 ? 'text-sky-400 font-bold' : 'text-slate-400'}`}>
               <span className={`w-6 h-6 rounded-full flex items-center justify-center border ${step >= 3 ? 'bg-sky-500/20 border-sky-400' : 'border-slate-700'}`}>03</span>
               <span>Drone Equipment</span>
             </div>
             <div className="w-8 h-px bg-slate-800 hidden sm:block" />
-            <div className={`flex items-center gap-2 ${step >= 4 ? 'text-sky-400 font-bold' : 'text-slate-500'}`}>
+            <div className={`flex items-center gap-2 ${step >= 4 ? 'text-sky-400 font-bold' : 'text-slate-400'}`}>
               <span className={`w-6 h-6 rounded-full flex items-center justify-center border ${step >= 4 ? 'bg-sky-500/20 border-sky-400' : 'border-slate-700'}`}>04</span>
               <span>Reconstruction Review</span>
             </div>
@@ -249,7 +249,7 @@ export const NewSurvey: React.FC = () => {
                     <p className="font-semibold text-sm text-slate-200">
                       Drop drone footage or images here, or <span className="text-sky-400 underline">browse files</span>
                     </p>
-                    <p className="text-xs text-slate-500 font-mono">
+                    <p className="text-xs text-slate-400 font-mono">
                       Supported: MP4, MOV, MKV, JPG, PNG, ZIP, GLB, GLTF, OBJ (Max 250 MB per file)
                     </p>
                   </label>
@@ -265,9 +265,9 @@ export const NewSurvey: React.FC = () => {
                           <div className="flex items-center gap-2 truncate">
                             <File className="w-4 h-4 text-sky-400 shrink-0" />
                             <span className="truncate text-slate-200 font-mono">{file.name}</span>
-                            <span className="text-[10px] text-slate-500 font-mono">({(file.size / (1024 * 1024)).toFixed(1)} MB)</span>
+                            <span className="text-xs text-slate-400 font-mono">({(file.size / (1024 * 1024)).toFixed(1)} MB)</span>
                           </div>
-                          <button type="button" onClick={() => removeFile(idx)} className="text-slate-400 hover:text-rose-400 p-1">
+                          <button type="button" onClick={() => removeFile(idx)} aria-label="Remove file" className="text-slate-400 hover:text-rose-400 p-1">
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>

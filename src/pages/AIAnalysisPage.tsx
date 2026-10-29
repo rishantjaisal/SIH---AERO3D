@@ -54,13 +54,13 @@ export const AIAnalysisPage: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         <Topbar title="AI Scene Intelligence & Computer Vision" />
 
-        <main className="p-6 max-w-7xl mx-auto w-full space-y-6">
+        <main id="main-content" className="p-6 max-w-7xl mx-auto w-full space-y-6">
 
           {/* Header Banner */}
           <div className="p-6 rounded-2xl glass-panel-elevated border border-slate-700/80 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                <span className="px-2 py-0.5 rounded text-xs font-mono bg-sky-500/20 text-sky-300 border border-sky-500/30">
                   {analysisData.isDemo ? 'DEMO AI ANALYSIS' : 'LIVE CV CLASSIFICATION'}
                 </span>
                 <span className="text-xs text-slate-400 font-mono">Model Target: {activeProject?.name || 'KIET Campus Survey'}</span>
@@ -102,7 +102,7 @@ export const AIAnalysisPage: React.FC = () => {
             {filteredDetections.map((det) => (
               <div key={det.id} className="p-4 rounded-xl glass-panel border border-slate-800 space-y-3 hover:border-sky-500/40 transition-colors">
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                  <span className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
                     {det.category.toUpperCase()}
                   </span>
                   <div className="flex items-center gap-1 font-mono text-xs text-emerald-400 font-bold">
@@ -115,7 +115,7 @@ export const AIAnalysisPage: React.FC = () => {
                   <p className="text-slate-400 text-xs mt-0.5">{det.status}</p>
                 </div>
 
-                <div className="p-2.5 rounded bg-aerospace-950 border border-slate-800/80 font-mono text-[11px] space-y-1">
+                <div className="p-2.5 rounded bg-aerospace-950 border border-slate-800/80 font-mono text-xs space-y-1">
                   <div className="flex justify-between text-slate-400">
                     <span>Footprint Area:</span>
                     <span className="text-slate-200 font-semibold">{det.areaM2} m²</span>
@@ -123,7 +123,7 @@ export const AIAnalysisPage: React.FC = () => {
                   {det.boundingBox && (
                     <div className="flex justify-between text-slate-400">
                       <span>3D Bounds:</span>
-                      <span className="text-sky-300 text-[10px]">
+                      <span className="text-sky-300 text-xs">
                         [{det.boundingBox.min.join(',')}] to [{det.boundingBox.max.join(',')}]
                       </span>
                     </div>
@@ -131,7 +131,7 @@ export const AIAnalysisPage: React.FC = () => {
                 </div>
 
                 {det.severity && (
-                  <div className="p-2 rounded bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] flex items-center gap-2">
+                  <div className="p-2 rounded bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                     <span>Severity: {det.severity} Inspection Anomaly</span>
                   </div>

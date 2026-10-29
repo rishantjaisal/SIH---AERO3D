@@ -42,7 +42,7 @@ export const DeleteProjectButton: React.FC<{ project: Project; compact?: boolean
         title={`Delete ${project.name}`}
         aria-label={`Delete ${project.name}`}
         className={`inline-flex items-center gap-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 font-medium transition-colors ${
-          compact ? 'px-2.5 py-1 text-[11px]' : 'px-3 py-1.5'
+          compact ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5'
         }`}
       >
         <Trash2 className="w-3.5 h-3.5" />
@@ -63,7 +63,7 @@ export const DeleteProjectButton: React.FC<{ project: Project; compact?: boolean
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
               <span className="font-bold text-slate-100">{project.name}</span>{' '}
-              <span className="font-mono text-slate-500">({project.id})</span> and its markers and measurements will be
+              <span className="font-mono text-slate-400">({project.id})</span> and its markers and measurements will be
               permanently removed. Other projects are not affected. This cannot be undone.
             </p>
             {error && <p className="text-xs text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded p-2">{error}</p>}

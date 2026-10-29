@@ -138,7 +138,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     const size = modelMetrics.size;
     const maxDim = modelMetrics.maxDimension || 20;
-    const dist = maxDim * 1.8;
+    const dist = maxDim * 1.55; // frame the model closely without clipping its dimension lines
     const targetY = size.y / 2;
 
     controls.target.set(0, targetY, 0);
@@ -203,14 +203,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   return (
     <div className="w-full h-full relative bg-aerospace-950 overflow-hidden">
       
-      {/* Top Status Badge */}
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 px-3 py-1.5 rounded-lg glass-panel text-xs font-mono font-semibold border border-slate-700/80 shadow-lg select-none">
-        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        <span className="text-slate-200 truncate max-w-xs">
-          {project?.isDemo ? `DEMO MODEL: ${project.name}` : `3D DIGITAL TWIN: ${project?.name || projectId}`}
-        </span>
-      </div>
-
       {/* Point Cloud Unavailable Notice */}
       {renderMode === 'pointcloud' && !hasNativePointCloud && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-mono backdrop-blur-md shadow-xl">
@@ -232,7 +224,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               <p className="text-xs text-slate-400 leading-relaxed">
                 The 3D model asset for project <span className="text-sky-300 font-bold">{project?.name || projectId}</span> could not be loaded at <code className="text-sky-300 bg-slate-900 px-1.5 py-0.5 rounded break-all">{modelUrl}</code>.
               </p>
-              <div className="text-[11px] text-slate-500 leading-normal">
+              <div className="text-xs text-slate-400 leading-normal">
                 {error.message || 'The model asset is not available on this server.'}
               </div>
               <div className="flex items-center justify-center gap-3 pt-2">
@@ -290,10 +282,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                 args={[gridScale, gridScale]}
                 cellSize={gridCell}
                 cellThickness={0.8}
-                cellColor="#1f3152"
+                cellColor="#16233b"
                 sectionSize={gridCell * 5}
-                sectionThickness={1.5}
-                sectionColor="#38bdf8"
+                sectionThickness={1}
+                sectionColor="#2b5d82"
                 fadeDistance={gridScale * 0.8}
               />
             )}

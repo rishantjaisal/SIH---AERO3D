@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -13,7 +13,8 @@ import {
   Presentation,
   Info,
   ChevronRight,
-  Activity
+  Activity,
+  X
 } from 'lucide-react';
 import { useProjects } from '../../store/ProjectContext';
 import { SystemStatusBadge } from './SystemStatusBadge';
@@ -22,6 +23,16 @@ export const Sidebar: React.FC = () => {
   const location = useLocation();
   const { activeProject } = useProjects();
   const projId = activeProject?.id || 'demo-proj-001';
+  const [open, setOpen] = useState(false); // mobile drawer
+
+  useEffect(() => {
+    const toggle = () => setOpen(o => !o);
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('aero:toggle-nav', toggle);
+    window.addEventListener('keydown', esc);
+    return () => { window.removeEventListener('aero:toggle-nav', toggle); window.removeEventListener('keydown', esc); };
+  }, []);
+  useEffect(() => { setOpen(false); }, [location.pathname]);
 
   const navItems = [
     { label: 'Overview', path: '/dashboard', base: '/dashboard', icon: LayoutDashboard },
@@ -37,7 +48,12 @@ export const Sidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="w-64 bg-aerospace-900 border-r border-slate-800/80 flex flex-col h-full shrink-0 select-none">
+    <>
+    {open && <div className="fixed inset-0 z-50 bg-slate-950/70 lg:hidden" onClick={() => setOpen(false)} aria-hidden />}
+    <aside
+      aria-label="Primary navigation"
+      className={`fixed lg:static inset-y-0 left-0 z-[60] w-64 max-w-[85vw] bg-aerospace-900 border-r border-slate-800/80 flex flex-col h-full shrink-0 select-none transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
+    >
       
       {/* Brand Header */}
       <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
@@ -46,16 +62,17 @@ export const Sidebar: React.FC = () => {
             3D
           </div>
           <div>
-            <h1 className="font-bold text-sm text-slate-100 font-mono tracking-wider">AERO<span className="text-sky-400">3D</span></h1>
-            <p className="text-[10px] text-slate-400 font-sans">Command Twin System</p>
+            <div className="font-bold text-sm text-slate-100 tracking-wider">AERO<span className="text-sky-400">3D</span></div>
+            <p className="text-xs text-slate-400 font-sans">Command Twin System</p>
           </div>
         </div>
-        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300 border border-slate-700">v1.0</span>
+        <span className="hidden lg:inline px-2 py-0.5 rounded text-xs font-mono bg-slate-800 text-slate-300 border border-slate-700">v1.0</span>
+        <button type="button" onClick={() => setOpen(false)} className="lg:hidden p-2 rounded-lg text-slate-300 hover:text-white" aria-label="Close navigation menu"><X className="w-4 h-4" /></button>
       </div>
 
       {/* Active Project Banner */}
       <div className="p-3 bg-aerospace-950/60 border-b border-slate-800/60">
-        <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-1">Active Project</div>
+        <div className="text-xs font-mono uppercase text-slate-400 tracking-wider mb-1">Active Project</div>
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-sky-300 truncate max-w-[170px]" title={activeProject?.name || 'KIET Campus Survey'}>
             {activeProject?.name || 'KIET Campus Survey'}
@@ -100,11 +117,12 @@ export const Sidebar: React.FC = () => {
             IT
           </div>
           <div className="truncate flex-1">
-            <p className="font-semibold text-slate-200 text-[11px] truncate">INNOTECH 2026 Evaluator</p>
-            <p className="text-[10px] text-slate-400 truncate">Aero3D Drone Twin</p>
+            <p className="font-semibold text-slate-200 text-xs truncate">INNOTECH 2026 Evaluator</p>
+            <p className="text-xs text-slate-400 truncate">Aero3D Drone Twin</p>
           </div>
         </div>
       </div>
     </aside>
+    </>
   );
 };
