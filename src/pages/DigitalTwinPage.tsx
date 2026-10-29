@@ -39,7 +39,7 @@ export const DigitalTwinPage: React.FC = () => {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Topbar title="Digital Twin Mission Control Center" />
+        <Topbar title="Digital twin" />
 
         <div className="flex-1 flex min-h-0 relative">
           
@@ -95,14 +95,14 @@ export const DigitalTwinPage: React.FC = () => {
                       )}
                       <span className="font-medium text-xs">{item.label}</span>
                     </div>
-                    <span className="text-xs font-mono text-slate-400">{item.count}</span>
+                    <span className="readout text-xs text-slate-400">{item.count}</span>
                   </button>
                 );
               })}
             </div>
 
-            <div className="p-3 rounded-lg bg-aerospace-950 border border-slate-800 space-y-1.5 font-mono text-xs">
-              <span className="text-slate-400 block uppercase">Mission Telemetry</span>
+            <div className="p-3 rounded-lg bg-aerospace-950 border border-slate-800 space-y-1.5 text-xs">
+              <span className="text-slate-400 block">Mission Telemetry</span>
               <div className="flex justify-between text-slate-300">
                 <span>Signal Status:</span>
                 <span className="text-emerald-400 font-bold">OPTIMAL</span>

@@ -819,7 +819,7 @@ const LOOK = [
   [0, 6, 0]
 ].map(a => v3(a[0], a[1], a[2]));
 // view shift per section so the model always sits in the half of the screen that is free of copy
-const OFF = [-0.17, 0.15, -0.15, 0.15, -0.15];
+const OFF = [-0.23, 0.15, -0.15, 0.15, -0.15];
 
 const Director: React.FC<{ shared: Shared }> = ({ shared }) => {
   const { camera, size, clock } = useThree();

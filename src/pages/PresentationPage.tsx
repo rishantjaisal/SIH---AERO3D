@@ -114,22 +114,22 @@ export const PresentationPage: React.FC = () => {
       {/* Top Header Bar */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 font-bold font-mono">
+          <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 font-bold">
             IT
           </div>
           <div>
-            <h1 className="font-bold text-sm text-slate-100 tracking-wider">AERO<span className="text-sky-400">3D</span> INTELLIGENCE</h1>
+            <h1 className="font-bold text-sm text-slate-100">AERO<span className="text-sky-400">3D</span> INTELLIGENCE</h1>
             <p className="text-xs text-slate-400 font-sans">INNOTECH 2026 Presentation Mode</p>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
-          <span className="px-3 py-1 rounded-full text-xs font-mono bg-sky-500/20 text-sky-300 border border-sky-500/30">
+          <span className="px-3 py-1 rounded-full text-xs bg-sky-500/20 text-sky-300 border border-sky-500/30">
             {slide.tag}
           </span>
           <button
             onClick={() => navigate('/dashboard')}
-            className="px-3 py-1.5 rounded-lg bg-aerospace-800 text-slate-300 hover:text-white border border-slate-700 text-xs font-mono"
+            className="px-3 py-1.5 rounded-lg bg-aerospace-800 text-slate-300 hover:text-white border border-slate-700 text-xs"
           >
             Exit Presentation
           </button>
@@ -139,7 +139,7 @@ export const PresentationPage: React.FC = () => {
       {/* Main Slide Content */}
       <div className="max-w-5xl mx-auto w-full my-auto space-y-6 animate-in fade-in zoom-in-95">
         <div>
-          <span className="text-xs font-mono text-sky-400 uppercase tracking-wider block mb-1">{slide.subtitle}</span>
+          <span className="text-xs text-sky-400 block mb-1">{slide.subtitle}</span>
           <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-100">{slide.title}</h2>
         </div>
 
@@ -147,8 +147,8 @@ export const PresentationPage: React.FC = () => {
           {slide.points.map((pt, idx) => {
             const [boldPart, ...rest] = pt.split(':');
             return (
-              <div key={idx} className="p-4 rounded-xl glass-panel border border-slate-800 flex items-start gap-3 hover:border-sky-500/40 transition-colors">
-                <div className="w-6 h-6 rounded-full bg-sky-500/10 text-sky-400 flex items-center justify-center font-mono font-bold text-xs shrink-0 mt-0.5">
+              <div key={idx} className="p-4 rounded-xl card border border-slate-800 flex items-start gap-3 hover:border-sky-500/40 transition-colors">
+                <div className="w-6 h-6 rounded-full bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
                   {idx + 1}
                 </div>
                 <p className="text-slate-200 text-sm leading-relaxed">
@@ -178,7 +178,7 @@ export const PresentationPage: React.FC = () => {
 
       {/* Bottom Footer Controls */}
       <div className="flex items-center justify-between border-t border-slate-800 pt-4">
-        <div className="text-xs text-slate-400 font-mono">
+        <div className="text-xs text-slate-400">
           Slide {currentSlide + 1} of {slides.length}
         </div>
 
