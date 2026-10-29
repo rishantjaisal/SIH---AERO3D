@@ -1,33 +1,31 @@
 import React from 'react';
-import { ShieldCheck, Cpu, AlertTriangle } from 'lucide-react';
 import { useProjects } from '../../store/ProjectContext';
 
 export const SystemStatusBadge: React.FC<{ compact?: boolean }> = ({ compact }) => {
   const { providerStatus } = useProjects();
   const isPolycam = providerStatus?.mode === 'polycam';
+  const dot = isPolycam ? 'bg-emerald-400' : 'bg-amber-400';
 
   if (compact) {
     return (
-      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono bg-aerospace-800/90 border border-slate-700/80 text-slate-300">
-        <span className={`w-2 h-2 rounded-full animate-pulse ${isPolycam ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-        <span>{isPolycam ? 'POLYCAM API' : 'DEMO MODE'}</span>
-      </div>
+      <span className={`pill ${isPolycam ? "pill-ok" : "pill-warn"}`} title={isPolycam ? 'Reconstruction via Polycam API' : 'Demo engine: offline bundled models'}>
+        <span className={`w-2 h-2 rounded-full ${dot}`} aria-hidden />
+        {isPolycam ? 'Polycam API' : 'Demo engine'}
+      </span>
     );
   }
 
   return (
-    <div className="glass-panel p-3 rounded-lg border border-slate-800 text-xs">
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-slate-400 font-mono uppercase tracking-wider text-xs">Reconstruction Engine</span>
-        <span className={`flex items-center gap-1 font-mono font-semibold ${isPolycam ? 'text-emerald-400' : 'text-amber-400'}`}>
-          <span className={`w-2 h-2 rounded-full ${isPolycam ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-          {isPolycam ? 'POLYCAM CONNECTED' : 'DEMO MODE'}
+    <div className="rounded-[10px] border border-slate-700 bg-aerospace-900 p-3 text-sm">
+      <div className="mb-1.5">
+        <span className="text-slate-400 text-xs block">Reconstruction engine</span>
+        <span className={`mt-0.5 inline-flex items-center gap-1.5 font-medium text-sm ${isPolycam ? 'text-emerald-400' : 'text-amber-400'}`}>
+          <span className={`w-2 h-2 rounded-full ${dot}`} aria-hidden />
+          {isPolycam ? 'Polycam connected' : 'Demo engine'}
         </span>
       </div>
       <p className="text-slate-400 text-xs leading-relaxed">
-        {isPolycam
-          ? 'Live photogrammetry via Polycam API v1.'
-          : 'Operating in Demo Mode. Offline 3D Digital Twin GLB rendering.'}
+        {isPolycam ? 'Live photogrammetry via Polycam API v1.' : 'Offline mode: bundled 3D models, no external service.'}
       </p>
     </div>
   );

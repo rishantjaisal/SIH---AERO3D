@@ -16,7 +16,7 @@ export const MapPage: React.FC = () => {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Topbar title="GIS Spatial Mapping & 3D Twin Sync" />
+        <Topbar title="GIS mapping" />
 
         {/* Split Screen Container */}
         <div className="flex-1 flex flex-col md:flex-row min-h-0 relative">

@@ -120,22 +120,22 @@ export const ViewerPage: React.FC = () => {
   // Case 1: Project not found in projects array
   if (!currentProj) {
     return (
-      <div className="flex flex-col h-screen bg-aerospace-950 text-slate-100 items-center justify-center p-6 font-mono select-none">
-        <div className="max-w-md w-full glass-panel-elevated p-8 rounded-2xl border border-slate-700/80 text-center space-y-4 shadow-2xl">
+      <div className="flex flex-col h-screen bg-aerospace-950 text-slate-100 items-center justify-center p-6 font-sans select-none">
+        <div className="max-w-md w-full card-elevated p-8 text-center space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
             <FileQuestion className="w-7 h-7" />
           </div>
-          <h2 className="text-lg font-bold text-slate-100">Project Not Found</h2>
-          <p className="text-xs text-slate-400 leading-relaxed font-sans">
+          <h2 className="font-display text-2xl font-semibold text-slate-100">Project not found</h2>
+          <p className="text-sm text-slate-400 leading-relaxed">
             No survey project exists with ID <code className="text-sky-300 font-mono bg-slate-900 px-2 py-0.5 rounded">{projectId}</code>.
           </p>
           <div className="pt-2">
             <button
               onClick={() => navigate('/dashboard')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-aerospace-950 font-bold text-xs shadow-lg transition-all"
+              className="btn btn-primary"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back to Dashboard</span>
+              <span>Back to dashboard</span>
             </button>
           </div>
         </div>
@@ -147,54 +147,54 @@ export const ViewerPage: React.FC = () => {
   if (!currentProj.model_url || currentProj.status === 'QUEUED' || currentProj.status === 'PROCESSING') {
     return (
       <div className="flex flex-col h-screen bg-aerospace-950 text-slate-100 font-sans">
-        <header className="h-14 bg-aerospace-900 border-b border-slate-800 px-4 flex items-center justify-between z-40 shrink-0">
+        <header className="h-14 bg-aerospace-900 border-b border-slate-700 px-4 flex items-center justify-between z-40 shrink-0">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/dashboard')}
-              className="p-1.5 rounded-lg bg-aerospace-950 text-slate-400 hover:text-slate-200 border border-slate-800 transition-colors"
+              className="icon-btn"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
             <div>
-              <h1 className="font-bold text-sm text-slate-100">{currentProj.name}</h1>
+              <h1 className="font-display font-semibold text-base text-slate-100">{currentProj.name}</h1>
               <p className="text-xs text-slate-400">ID: {currentProj.id}</p>
             </div>
           </div>
         </header>
 
-        <div className="flex-1 flex items-center justify-center p-6 font-mono">
-          <div className="max-w-md w-full glass-panel-elevated p-8 rounded-2xl border border-sky-500/30 text-center space-y-5 shadow-2xl">
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full card-elevated p-8 text-center space-y-5">
             <div className="w-14 h-14 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center mx-auto">
               <AlertCircle className="w-7 h-7" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-100">3D Model Unavailable</h2>
-              <p className="text-xs text-slate-400 leading-relaxed font-sans mt-1">
+              <h2 className="font-display text-2xl font-semibold text-slate-100">3D model unavailable</h2>
+              <p className="text-sm text-slate-400 leading-relaxed mt-2">
                 This project has not generated a 3D digital twin model yet.
               </p>
             </div>
 
-            <div className="p-3 rounded-xl bg-aerospace-950 border border-slate-800 text-xs text-left space-y-1 font-mono">
+            <div className="p-3 rounded-[10px] bg-aerospace-950 border border-slate-700 text-sm text-left space-y-1">
               <div className="text-slate-400">Status: <span className="text-amber-400 font-bold">{currentProj.status}</span></div>
-              <div className="text-slate-400">Source Type: <span className="text-slate-200">{currentProj.source_type || currentProj.inputType || 'photos'}</span></div>
+              <div className="text-slate-400">Source type: <span className="text-slate-200">{currentProj.source_type || currentProj.inputType || 'photos'}</span></div>
             </div>
 
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
                 onClick={() => navigate('/dashboard')}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition-all"
+                className="btn btn-secondary"
               >
-                Back to Dashboard
+                Back to dashboard
               </button>
               <button
                 onClick={() => {
                   api.processProject(currentProj.id).catch(() => {});
                   navigate(`/processing/${currentProj.id}`);
                 }}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-aerospace-950 font-bold text-xs shadow-lg transition-all"
+                className="btn btn-primary"
               >
                 <Play className="w-4 h-4 fill-current" />
-                <span>Start Processing</span>
+                <span>Start processing</span>
               </button>
             </div>
           </div>
@@ -251,11 +251,11 @@ export const ViewerPage: React.FC = () => {
     <div className="flex flex-col h-screen bg-aerospace-950 text-slate-100 overflow-hidden font-sans select-none">
       
       {/* Top Header Controls Bar */}
-      <header className="h-14 bg-aerospace-900 border-b border-slate-800 px-4 flex items-center justify-between z-40 shrink-0">
+      <header className="h-14 bg-aerospace-900 border-b border-slate-700 px-4 flex items-center justify-between z-40 shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/dashboard')}
-            className="p-1.5 rounded-lg bg-aerospace-950 text-slate-400 hover:text-slate-200 border border-slate-800 transition-colors"
+            className="icon-btn"
             title="Return to Dashboard"
             aria-label="Return to dashboard"
           >
@@ -263,17 +263,15 @@ export const ViewerPage: React.FC = () => {
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-bold text-sm text-slate-100 tracking-wide truncate max-w-xs sm:max-w-md">
+              <h1 className="font-display font-semibold text-base text-slate-100 truncate max-w-[40vw] sm:max-w-md">
                 {currentProj.name}
               </h1>
-              <span className={`px-2 py-0.5 rounded text-xs font-mono border ${
-                isDemoProject ? 'bg-sky-500/20 text-sky-300 border-sky-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-              }`}>
-                {isDemoProject ? 'DEMO SAMPLE MODEL' : 'PROCESSED 3D DIGITAL TWIN'}
+              <span className={`pill hidden sm:inline-flex ${isDemoProject ? 'pill-info' : 'pill-ok'}`}>
+                {isDemoProject ? 'Demo sample model' : 'Processed digital twin'}
               </span>
             </div>
-            <p className="text-xs text-slate-400 font-sans">
-              {currentProj.metadata?.locationName ? `Location: ${currentProj.metadata.locationName}` : 'Survey Location: Unspecified'}
+            <p className="text-[13px] text-slate-400 leading-tight">
+              {currentProj.metadata?.locationName ? currentProj.metadata.locationName : 'Location not specified'}
             </p>
           </div>
         </div>
@@ -282,25 +280,23 @@ export const ViewerPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate(`/analysis/${currentProj.id}`)}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 text-xs font-semibold"
+            className="hidden sm:inline-flex btn btn-secondary btn-sm"
           >
-            <Box className="w-3.5 h-3.5" />
-            <span>AI Detections</span>
+            <Box className="w-4 h-4" aria-hidden />
+            <span>AI detections</span>
           </button>
 
           <button
             onClick={() => navigate(`/map/${currentProj.id}`)}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-aerospace-800 hover:bg-aerospace-700 text-slate-200 border border-slate-700 text-xs font-medium"
+            className="hidden sm:inline-flex btn btn-secondary btn-sm"
           >
-            <MapPin className="w-3.5 h-3.5 text-sky-400" />
-            <span>GIS Map</span>
+            <MapPin className="w-4 h-4" aria-hidden />
+            <span>GIS map</span>
           </button>
 
           <button
             onClick={() => setShowInfoPanel(!showInfoPanel)}
-            className={`p-2 rounded-lg border text-xs font-medium transition-colors ${
-              showInfoPanel ? 'bg-sky-500/20 text-sky-300 border-sky-500/40' : 'bg-aerospace-800 text-slate-300 border-slate-700'
-            }`}
+            className="icon-btn"
             title="Show or hide the model information panel"
             aria-label="Toggle model information panel"
             aria-pressed={showInfoPanel}
@@ -377,84 +373,84 @@ export const ViewerPage: React.FC = () => {
 
       {/* Pin Issue Dialog Modal */}
       {pendingMarkerPoint && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md glass-panel-elevated p-6 rounded-2xl border border-slate-700 space-y-4 animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="font-bold text-sm text-slate-100">Add Inspection Marker Pin</h3>
-              <button onClick={() => setPendingMarkerPoint(null)} aria-label="Close dialog" className="text-slate-400 hover:text-white">
+        <div className="dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="pin-dialog-title">
+          <div className="dialog space-y-5">
+            <div className="flex items-center justify-between">
+              <h3 id="pin-dialog-title" className="font-display text-xl font-semibold text-slate-100">Pin an inspection issue</h3>
+              <button onClick={() => setPendingMarkerPoint(null)} aria-label="Close dialog" title="Close" className="icon-btn border-transparent bg-transparent">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveMarker} className="space-y-3 text-xs">
+            <form onSubmit={handleSaveMarker} className="space-y-4">
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Issue Category</label>
+                <label className="field-label">Issue category</label>
                 <select
                   value={markerForm.category}
                   onChange={e => setMarkerForm({ ...markerForm, category: e.target.value as any })}
-                  className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200"
+                  className="field"
                 >
-                  <option value="Structural">Structural Crack / Beam</option>
-                  <option value="Roof">Roof Membrane Anomaly</option>
-                  <option value="Facade">Facade Damage / Trim</option>
-                  <option value="Vegetation">Obstruction / Canopy</option>
-                  <option value="Anomaly">General Surface Defect</option>
+                  <option value="Structural">Structural crack or beam</option>
+                  <option value="Roof">Roof membrane anomaly</option>
+                  <option value="Facade">Facade damage or trim</option>
+                  <option value="Vegetation">Obstruction or canopy</option>
+                  <option value="Anomaly">General surface defect</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Severity Level</label>
+                <label className="field-label">Severity</label>
                 <select
                   value={markerForm.severity}
                   onChange={e => setMarkerForm({ ...markerForm, severity: e.target.value as any })}
-                  className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200"
+                  className="field"
                 >
-                  <option value="High">High Severity (Critical Repair)</option>
-                  <option value="Medium">Medium Severity (Schedule Maintenance)</option>
-                  <option value="Low">Low Severity (Minor Observation)</option>
+                  <option value="High">High (critical repair)</option>
+                  <option value="Medium">Medium (schedule maintenance)</option>
+                  <option value="Low">Low (minor observation)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Issue Title / Label *</label>
+                <label className="field-label">Title *</label>
                 <input
                   type="text"
                   required
                   value={markerForm.label}
                   onChange={e => setMarkerForm({ ...markerForm, label: e.target.value })}
                   placeholder="e.g. 3mm Vertical Crack on Beam"
-                  className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200"
+                  className="field"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Inspection Note / Description</label>
+                <label className="field-label">Inspection note</label>
                 <textarea
                   rows={3}
                   value={markerForm.note}
                   onChange={e => setMarkerForm({ ...markerForm, note: e.target.value })}
                   placeholder="Add detailed inspector observations..."
-                  className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200"
+                  className="field"
                 />
               </div>
 
-              <div className="text-xs text-slate-400 font-mono">
-                Location Point: [{pendingMarkerPoint.map(n => n.toFixed(2)).join(', ')}]
+              <div className="text-sm text-slate-400">
+                Location point: <span className="readout"> [{pendingMarkerPoint.map(n => n.toFixed(2)).join(', ')}]</span>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setPendingMarkerPoint(null)}
-                  className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 font-semibold"
+                  className="btn btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-aerospace-950 font-bold"
+                  className="btn btn-primary"
                 >
-                  Save 3D Marker
+                  Save marker
                 </button>
               </div>
             </form>
@@ -464,64 +460,64 @@ export const ViewerPage: React.FC = () => {
 
       {/* Scale Calibration Modal */}
       {showCalibrationModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md glass-panel-elevated p-6 rounded-2xl border border-slate-700 space-y-4 animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
-                <Scale className="w-4 h-4 text-sky-400" />
-                <span>3D Model Scale Calibration</span>
+        <div className="dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="cal-dialog-title">
+          <div className="dialog space-y-5">
+            <div className="flex items-center justify-between">
+              <h3 id="cal-dialog-title" className="font-display text-xl font-semibold text-slate-100 flex items-center gap-2">
+                <Scale className="w-5 h-5 text-sky-400" aria-hidden />
+                <span>Calibrate scale</span>
               </h3>
-              <button onClick={() => setShowCalibrationModal(false)} aria-label="Close dialog" className="text-slate-400 hover:text-white">
+              <button onClick={() => setShowCalibrationModal(false)} aria-label="Close dialog" title="Close" className="icon-btn border-transparent bg-transparent">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleApplyCalibration} className="space-y-4 text-xs">
-              <p className="text-slate-300 leading-relaxed">
-                Enter a known physical reference distance (e.g. building width or Ground Control Target) to calibrate photogrammetry scale factor:
+            <form onSubmit={handleApplyCalibration} className="space-y-4">
+              <p className="text-slate-400 leading-relaxed text-sm">
+                Enter a known real-world distance, such as a building width or a ground control target, to set the model scale.
               </p>
 
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Known Reference Physical Distance (meters)</label>
+                <label className="field-label">Known real-world distance (meters)</label>
                 <input
                   type="number"
                   step="0.01"
                   required
                   value={calibrationInput.knownDistance}
                   onChange={e => setCalibrationInput({ ...calibrationInput, knownDistance: e.target.value })}
-                  className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 font-mono"
+                  className="field readout"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Measured Model Distance (model units)</label>
+                <label className="field-label">Measured model distance (model units)</label>
                 <input
                   type="number"
                   step="0.01"
                   required
                   value={calibrationInput.measuredDistance}
                   onChange={e => setCalibrationInput({ ...calibrationInput, measuredDistance: e.target.value })}
-                  className="w-full p-2.5 rounded-lg bg-aerospace-950 border border-slate-700 text-slate-200 font-mono"
+                  className="field readout"
                 />
               </div>
 
-              <div className="p-3 rounded-lg bg-aerospace-950 border border-slate-800 text-xs font-mono text-sky-400">
-                Calculated Scale Multiplier: {(parseFloat(calibrationInput.knownDistance) / (parseFloat(calibrationInput.measuredDistance) || 1)).toFixed(4)}
+              <div className="stat-tile text-sm text-slate-400">
+                Scale multiplier: <span className="readout text-sky-400">{(parseFloat(calibrationInput.knownDistance) / (parseFloat(calibrationInput.measuredDistance) || 1)).toFixed(4)}</span>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCalibrationModal(false)}
-                  className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 font-semibold"
+                  className="btn btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-aerospace-950 font-bold"
+                  className="btn btn-primary"
                 >
-                  Apply Calibration Factor
+                  Apply calibration
                 </button>
               </div>
             </form>

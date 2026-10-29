@@ -49,10 +49,10 @@ export const InspectionMarkers: React.FC<InspectionMarkersProps> = ({
 
                 {/* Inspection Tooltip Popup Card */}
                 {isSelected && (
-                  <div className="absolute left-8 -top-12 w-64 glass-panel-elevated p-3 rounded-lg text-slate-100 text-xs shadow-2xl z-50 pointer-events-auto border border-sky-500/40 animate-in fade-in zoom-in-95">
+                  <div className="absolute left-8 -top-12 w-64 card-elevated p-3 text-slate-100 text-xs z-50 pointer-events-auto border border-sky-500/40 animate-in fade-in zoom-in-95">
                     <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 mb-2">
                       <div className="flex items-center gap-1.5">
-                        <span className={`px-1.5 py-0.5 rounded text-xs font-mono uppercase font-bold ${
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                           marker.severity === 'High' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                         }`}>
                           {marker.severity} {marker.category}

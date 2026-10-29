@@ -27,7 +27,7 @@ export const ReportsPage: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         
         <div className="print:hidden">
-          <Topbar title="Executive Survey Report Generator" />
+          <Topbar title="Reports" />
         </div>
 
         <main id="main-content" className="p-6 max-w-4xl mx-auto w-full space-y-6">
@@ -35,8 +35,8 @@ export const ReportsPage: React.FC = () => {
           {/* Action Bar */}
           <div className="flex items-center justify-between print:hidden">
             <div>
-              <h2 className="text-xl font-bold text-slate-100 font-sans">Executive Digital Twin Inspection Report</h2>
-              <p className="text-xs text-slate-400">PDF-ready formal survey documentation for engineering teams.</p>
+              <h2 className="page-title">Executive Digital Twin Inspection Report</h2>
+              <p className="page-lede mt-2">PDF-ready formal survey documentation for engineering teams.</p>
             </div>
             <button
               onClick={handlePrint}
@@ -54,14 +54,14 @@ export const ReportsPage: React.FC = () => {
             <div className="flex items-start justify-between border-b border-slate-800 print:border-slate-300 pb-6">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-2xl tracking-wider text-sky-400 print:text-slate-900 font-mono">AERO<span className="text-slate-100 print:text-sky-600">3D</span></span>
-                  <span className="px-2 py-0.5 rounded text-xs font-mono bg-sky-500/20 text-sky-300 print:bg-slate-200 print:text-slate-800">DIGITAL TWIN AUDIT</span>
+                  <span className="font-extrabold text-2xl text-sky-400 print:text-slate-900">AERO<span className="text-slate-100 print:text-sky-600">3D</span></span>
+                  <span className="px-2 py-0.5 rounded text-xs bg-sky-500/20 text-sky-300 print:bg-slate-200 print:text-slate-800">DIGITAL TWIN AUDIT</span>
                 </div>
                 <h1 className="text-xl font-bold text-slate-100 print:text-slate-900 mt-2">{currentProj?.name || 'KIET Campus Building Survey'}</h1>
-                <p className="text-xs text-slate-400 print:text-slate-400 font-mono">Report Ref: AUDIT-{projIdLabel}-2026</p>
+                <p className="text-xs text-slate-400 print:text-slate-400">Report Ref: AUDIT-{projIdLabel}-2026</p>
               </div>
 
-              <div className="text-right text-xs font-mono text-slate-400 print:text-slate-400">
+              <div className="text-right text-xs text-slate-400 print:text-slate-400">
                 <p>Date: {currentProj?.metadata?.surveyDate || '2026-08-28'}</p>
                 <p>Status: APPROVED</p>
                 <p>Provider: {providerLabel}</p>
@@ -79,8 +79,8 @@ export const ReportsPage: React.FC = () => {
               </div>
 
               <div className="md:col-span-2 space-y-2 text-xs">
-                <h3 className="font-bold text-sky-300 print:text-slate-900 text-sm uppercase">Site Overview & Coordinates</h3>
-                <div className="grid grid-cols-2 gap-2 p-3 rounded bg-aerospace-950 print:bg-slate-100 border border-slate-800 print:border-slate-300 font-mono">
+                <h3 className="font-bold text-sky-300 print:text-slate-900 text-sm">Site Overview & Coordinates</h3>
+                <div className="grid grid-cols-2 gap-2 p-3 rounded bg-aerospace-950 print:bg-slate-100 border border-slate-800 print:border-slate-300">
                   <div>
                     <span className="text-slate-400 print:text-slate-400 block text-xs">LOCATION</span>
                     <span className="font-bold">{currentProj?.metadata?.locationName || 'Delhi NCR, India'}</span>
@@ -103,8 +103,8 @@ export const ReportsPage: React.FC = () => {
 
             {/* Mesh Geometry Metrics Table */}
             <div className="space-y-3">
-              <h3 className="font-bold text-sky-300 print:text-slate-900 text-xs uppercase">1. Photogrammetry 3D Mesh Metrics</h3>
-              <div className="grid grid-cols-4 gap-3 font-mono text-xs text-center">
+              <h3 className="font-bold text-sky-300 print:text-slate-900 text-xs">1. Photogrammetry 3D Mesh Metrics</h3>
+              <div className="grid grid-cols-4 gap-3 text-xs text-center">
                 <div className="p-3 rounded bg-aerospace-950 print:bg-slate-100 border border-slate-800 print:border-slate-300">
                   <span className="text-xs text-slate-400 block">VERTICES</span>
                   <span className="font-bold text-sm">{currentProj?.metadata?.vertices ? currentProj.metadata.vertices.toLocaleString() : 'Not available'}</span>
@@ -126,9 +126,9 @@ export const ReportsPage: React.FC = () => {
 
             {/* Inspection Findings Table */}
             <div className="space-y-3">
-              <h3 className="font-bold text-sky-300 print:text-slate-900 text-xs uppercase">2. Flagged Structural Inspection Findings</h3>
+              <h3 className="font-bold text-sky-300 print:text-slate-900 text-xs">2. Flagged Structural Inspection Findings</h3>
               <table className="w-full text-left text-xs border border-slate-800 print:border-slate-300">
-                <thead className="bg-aerospace-950 print:bg-slate-200 text-slate-400 print:text-slate-700 font-mono text-xs">
+                <thead className="bg-aerospace-950 print:bg-slate-200 text-slate-400 print:text-slate-700 text-xs">
                   <tr>
                     <th className="p-2.5">Category</th>
                     <th className="p-2.5">Severity</th>
@@ -136,7 +136,7 @@ export const ReportsPage: React.FC = () => {
                     <th className="p-2.5">Inspector Observations</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800 print:divide-slate-300 font-mono">
+                <tbody className="divide-y divide-slate-800 print:divide-slate-300 readout text-sm">
                   {(markers || []).map(m => (
                     <tr key={m.id}>
                       <td className="p-2.5 font-bold">{m.category}</td>
@@ -156,7 +156,7 @@ export const ReportsPage: React.FC = () => {
             </div>
 
             {/* Signatures */}
-            <div className="pt-6 border-t border-slate-800 print:border-slate-300 flex justify-between text-xs font-mono text-slate-400 print:text-slate-400">
+            <div className="pt-6 border-t border-slate-800 print:border-slate-300 flex justify-between text-xs text-slate-400 print:text-slate-400">
               <div>
                 <p className="font-bold">Aero3D Flight Lead Signoff:</p>
                 <div className="h-8" />
