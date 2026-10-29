@@ -36,21 +36,25 @@ interface ThreeCanvasProps {
 const LoadingOverlay: React.FC<{ projectName?: string }> = ({ projectName }) => {
   const { progress } = useProgress();
   return (
-    <div className="absolute inset-0 z-30 bg-aerospace-950/80 backdrop-blur-md flex flex-col items-center justify-center p-6 select-none font-sans">
-      <div className="max-w-sm w-full card-elevated p-6 space-y-4 text-center">
-        <h3 className="font-display text-lg font-semibold text-slate-100 truncate" role="status">
-          Loading {projectName || '3D model'}
+    <div className="absolute inset-0 z-30 bg-aerospace-950/80 backdrop-blur-md flex flex-col items-center justify-center p-6 select-none font-mono">
+      <div className="max-w-sm w-full glass-panel-elevated p-6 rounded-2xl border border-slate-700/80 space-y-4 text-center shadow-2xl">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs">
+          <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
+          <span>3D CANVAS INGESTION</span>
+        </div>
+        <h3 className="text-sm font-bold tracking-wider text-slate-100 uppercase truncate">
+          LOADING {projectName ? projectName.toUpperCase() : '3D DIGITAL TWIN'}
         </h3>
         <div className="space-y-2">
-          <div className="w-full h-2 bg-aerospace-950 rounded-full overflow-hidden border border-slate-700">
+          <div className="w-full h-3 bg-aerospace-950 rounded-full overflow-hidden border border-slate-800 p-0.5">
             <div
-              className="h-full bg-sky-500 rounded-full transition-all duration-200 ease-out"
+              className="h-full bg-gradient-to-r from-sky-500 to-indigo-500 rounded-full transition-all duration-300 ease-out"
               style={{ width: `${Math.max(8, progress)}%` }}
             />
           </div>
           <div className="flex justify-between text-xs text-slate-400">
-            <span>Loading model geometry</span>
-            <span className="readout text-sky-300">{Math.round(progress)}%</span>
+            <span>Loading 3D model geometry...</span>
+            <span className="text-sky-300 font-bold">{Math.round(progress)}%</span>
           </div>
         </div>
       </div>
@@ -201,7 +205,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       
       {/* Point Cloud Unavailable Notice */}
       {renderMode === 'pointcloud' && !hasNativePointCloud && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-[10px] bg-aerospace-900 border border-amber-500/50 text-amber-300 text-sm shadow-xl">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-mono backdrop-blur-md shadow-xl">
           <EyeOff className="w-4 h-4 shrink-0" />
           <span>Point cloud representation unavailable for this model.</span>
         </div>
@@ -211,32 +215,32 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         key={`${projectId}-${modelUrl}`}
         modelUrl={modelUrl}
         fallback={(error, reset) => (
-          <div className="absolute inset-0 z-30 bg-aerospace-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center select-none font-sans">
-            <div className="max-w-md w-full card-elevated p-6 space-y-4">
+          <div className="absolute inset-0 z-30 bg-aerospace-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center select-none font-mono">
+            <div className="max-w-md w-full glass-panel-elevated p-6 rounded-2xl border border-rose-500/40 space-y-4 shadow-2xl">
               <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
                 <AlertTriangle className="w-6 h-6" />
               </div>
-              <h3 className="font-display text-xl font-semibold text-slate-100">3D model file not found</h3>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                The 3D model for project <span className="text-sky-300 font-bold">{project?.name || projectId}</span> could not be loaded at <code className="text-sky-300 bg-slate-900 px-1.5 py-0.5 rounded break-all">{modelUrl}</code>.
+              <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wide">3D MODEL ASSET NOT FOUND</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                The 3D model asset for project <span className="text-sky-300 font-bold">{project?.name || projectId}</span> could not be loaded at <code className="text-sky-300 bg-slate-900 px-1.5 py-0.5 rounded break-all">{modelUrl}</code>.
               </p>
-              <div className="text-sm text-slate-400 leading-normal">
+              <div className="text-xs text-slate-400 leading-normal">
                 {error.message || 'The model asset is not available on this server.'}
               </div>
               <div className="flex items-center justify-center gap-3 pt-2">
                 <button
                   onClick={() => navigate('/dashboard')}
-                  className="btn btn-secondary"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition-all"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>Back to dashboard</span>
+                  <span>Back to Dashboard</span>
                 </button>
                 <button
                   onClick={() => {
                     reset();
                     window.location.reload();
                   }}
-                  className="btn btn-primary"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-aerospace-950 font-bold text-xs shadow-lg transition-all"
                 >
                   <RefreshCw className="w-4 h-4" />
                   <span>Retry Loading</span>

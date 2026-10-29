@@ -41,35 +41,37 @@ export const DeleteProjectButton: React.FC<{ project: Project; compact?: boolean
         onClick={() => setOpen(true)}
         title={`Delete ${project.name}`}
         aria-label={`Delete ${project.name}`}
-        className={`btn btn-ghost text-rose-300 hover:text-rose-200 ${compact ? 'btn-sm' : ''}`}
+        className={`inline-flex items-center gap-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 font-medium transition-colors ${
+          compact ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5'
+        }`}
       >
-        <Trash2 className="w-4 h-4" aria-hidden />
+        <Trash2 className="w-3.5 h-3.5" />
         <span>Delete</span>
       </button>
 
       {open && (
-        <div className="dialog-backdrop !z-[100] text-left whitespace-normal" role="dialog" aria-modal="true" aria-labelledby="delete-title" onClick={close}>
-          <div className="dialog space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 text-left whitespace-normal" role="dialog" aria-modal="true" onClick={close}>
+          <div className="w-full max-w-md rounded-2xl glass-panel-elevated border border-slate-700/80 p-6 space-y-4 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2 text-rose-300 font-display font-semibold text-xl">
-                <AlertTriangle className="w-5 h-5" aria-hidden />
-                <span id="delete-title">Delete project?</span>
+              <div className="flex items-center gap-2 text-rose-300 font-mono font-bold text-sm">
+                <AlertTriangle className="w-4 h-4" />
+                <span>Delete project?</span>
               </div>
-              <button onClick={close} className="icon-btn border-transparent bg-transparent" aria-label="Close" title="Close">
+              <button onClick={close} className="text-slate-400 hover:text-white" aria-label="Close">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-sm text-slate-300 leading-relaxed">
+            <p className="text-xs text-slate-300 leading-relaxed">
               <span className="font-bold text-slate-100">{project.name}</span>{' '}
-              <span className="readout text-slate-400">({project.id})</span> and its markers and measurements will be
+              <span className="font-mono text-slate-400">({project.id})</span> and its markers and measurements will be
               permanently removed. Other projects are not affected. This cannot be undone.
             </p>
-            {error && <p className="text-sm text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg p-3" role="alert">{error}</p>}
-            <div className="flex justify-end gap-2">
-              <button onClick={close} disabled={busy} className="btn btn-secondary">
+            {error && <p className="text-xs text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded p-2">{error}</p>}
+            <div className="flex justify-end gap-2 text-xs">
+              <button onClick={close} disabled={busy} className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">
                 Cancel
               </button>
-              <button onClick={confirm} disabled={busy} className="btn btn-danger">
+              <button onClick={confirm} disabled={busy} className="px-4 py-2 rounded-lg bg-rose-500 hover:bg-rose-400 text-white font-bold disabled:opacity-60">
                 {busy ? 'Deleting…' : 'Delete permanently'}
               </button>
             </div>

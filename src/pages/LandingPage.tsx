@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, BrainCircuit, Check, FileText, FolderKanban, Map as MapIcon, Play, Ruler } from 'lucide-react';
+import { Box, BrainCircuit, Cpu, FileText, Map, Play, PlusCircle, Ruler } from 'lucide-react';
 import { Navbar } from '../components/layout/Navbar';
 import { useProjects } from '../store/ProjectContext';
 import { clamp, prefersReducedMotion, story, webglAvailable } from '../components/landing/story';
@@ -15,14 +15,6 @@ const TAGS: Array<{ name: string; meta: string; amber?: boolean }> = [
   { name: 'Roof surface', meta: 'sample label', amber: true },
   { name: 'Ground / paving', meta: 'sample label' },
   { name: 'Vegetation', meta: 'sample label' }
-];
-
-const PIPELINE: Array<{ t: string; d: string; st: 'ok' | 'sim' | 'plan'; label: string }> = [
-  { t: 'Capture', d: 'Fly the site and upload MP4/MOV footage or overlapping photos.', st: 'ok', label: 'Working' },
-  { t: 'Extract frames', d: 'FFmpeg samples sharp frames along the flight path.', st: 'ok', label: 'Working' },
-  { t: 'Reconstruct', d: 'Photogrammetry turns frames into a textured GLB. Today the demo engine serves bundled models; COLMAP and Polycam are not wired up.', st: 'sim', label: 'Simulated in demo' },
-  { t: 'Inspect', d: 'Open the model in the browser viewer, measure it, calibrate scale and switch units.', st: 'ok', label: 'Working' },
-  { t: 'Report', d: 'Print an inspection report per project; save it as PDF from the browser.', st: 'ok', label: 'Working' }
 ];
 
 const fmt = (n: number) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(Math.round(n)));
@@ -146,7 +138,7 @@ export const LandingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-aerospace-950 text-slate-100 flex flex-col font-sans selection:bg-sky-500/30">
+    <div className="min-h-screen bg-aerospace-950 text-slate-100 flex flex-col font-sans selection:bg-sky-500/30 selection:text-sky-200">
       <div className={`ln-loader ${loaded ? 'done' : ''}`} aria-hidden={loaded}>
         <span>Loading site model</span>
         <i />
@@ -185,31 +177,26 @@ export const LandingPage: React.FC = () => {
 
         <main id="main-content" className="flex-1">
           <div className="ln-story" ref={storyRef}>
-            {/* 0: hero */}
+            {/* 0 — hero */}
             <section className="ln-sec" ref={setSec(0)}>
               <div className="ln-card" style={{ maxWidth: 640 }}>
                 <div className="ln-eyebrow ln-rv" style={{ ['--d' as string]: 0 }}>
-                  <i /> Drone photogrammetry<span className="hidden sm:inline">&nbsp;· INNOTECH 2026</span>
+                  <i /> INNOTECH 2026
                 </div>
-                <h1 className="ln-display ln-h1 mt-6">
+                <h1 className="ln-display ln-h1 mt-5">
                   <span className="ln-rv block" style={{ ['--d' as string]: 1 }}>One drone flight.</span>
-                  <span className="ln-rv ln-accent block" style={{ ['--d' as string]: 2 }}>A measurable 3D twin.</span>
+                  <span className="ln-rv ln-grad block" style={{ ['--d' as string]: 2 }}>A living 3D twin.</span>
                 </h1>
-                <p className="ln-p ln-rv mt-7" style={{ ['--d' as string]: 3 }}>
-                  AERO3D turns drone footage into an interactive 3D model you can open in the browser, then measure, map and report on, with no plugin to install.
+                <p className="ln-p ln-rv mt-6 max-w-lg" style={{ ['--d' as string]: 3 }}>
+                  Turn raw drone footage into an interactive, browser-native 3D environment with AI scene intelligence, GIS mapping and spatial measurements, with no plugin to install.
                 </p>
-                <div className="ln-actions ln-rv flex flex-wrap items-center gap-3 mt-9" style={{ ['--d' as string]: 4 }}>
-                  <button className="btn btn-primary" onClick={handleLaunchDemo}>
-                    <Play className="w-4 h-4 fill-current" aria-hidden /> Open the demo
+                <div className="ln-rv flex flex-wrap gap-3 mt-8" style={{ ['--d' as string]: 4 }}>
+                  <button className="ln-btn primary" onClick={handleLaunchDemo}>
+                    <Play className="w-4 h-4 fill-current" /> Launch Interactive Demo
                   </button>
-                  <Link to="/projects/new" className="btn btn-ghost">
-                    Start a survey <ArrowRight className="w-4 h-4" aria-hidden />
+                  <Link to="/projects/new" className="ln-btn ghost">
+                    <PlusCircle className="w-4 h-4 text-sky-400" /> Start New Survey
                   </Link>
-                </div>
-                <div className="ln-facts ln-rv mt-8" style={{ ['--d' as string]: 5 }}>
-                  <span>Runs in the browser</span>
-                  <span>Upload a finished GLB</span>
-                  <span>Measure and calibrate</span>
                 </div>
               </div>
               <div className="ln-hint">
@@ -217,234 +204,134 @@ export const LandingPage: React.FC = () => {
               </div>
             </section>
 
-            {/* 1: capture */}
+            {/* 1 — capture */}
             <section className="ln-sec right" ref={setSec(1)}>
-              <div className="ln-card panel">
-                <div className="ln-num ln-rv" style={{ ['--d' as string]: 0 }}>01</div>
-                <h2 className="ln-display ln-h2 mt-5 ln-rv" style={{ ['--d' as string]: 1 }}>Capture the site</h2>
+              <div className="ln-card glass">
+                <div className="ln-eyebrow ln-rv" style={{ ['--d' as string]: 0 }}>
+                  <i /> 01 · Capture
+                </div>
+                <h2 className="ln-display ln-h2 mt-4 ln-rv" style={{ ['--d' as string]: 1 }}>
+                  Fly once.<br />
+                  <span className="ln-grad">Capture everything.</span>
+                </h2>
                 <p className="ln-p mt-4 ln-rv" style={{ ['--d' as string]: 2 }}>
                   Upload MP4, MOV or overlapping photos. FFmpeg samples sharp frames along the flight path, and every frame becomes a footprint on the ground.
                 </p>
-                <div className="ln-chips mt-6 ln-rv" style={{ ['--d' as string]: 3 }}>
+                <div className="ln-chips mt-5 ln-rv" style={{ ['--d' as string]: 3 }}>
                   <span className="ln-chip">MP4 · MOV · MKV</span>
                   <span className="ln-chip">3 FPS sampling</span>
-                  <span className="ln-chip">Lawnmower path</span>
+                  <span className="ln-chip amber">Lawnmower path</span>
                 </div>
               </div>
             </section>
 
-            {/* 2: reconstruct */}
+            {/* 2 — reconstruct */}
             <section className="ln-sec" ref={setSec(2)}>
-              <div className="ln-card panel">
-                <div className="ln-num ln-rv" style={{ ['--d' as string]: 0 }}>02</div>
-                <h2 className="ln-display ln-h2 mt-5 ln-rv" style={{ ['--d' as string]: 1 }}>Build the mesh</h2>
+              <div className="ln-card glass">
+                <div className="ln-eyebrow ln-rv" style={{ ['--d' as string]: 0 }}>
+                  <i /> 02 · Reconstruct
+                </div>
+                <h2 className="ln-display ln-h2 mt-4 ln-rv" style={{ ['--d' as string]: 1 }}>
+                  Points become a<br />
+                  <span className="ln-grad">textured mesh.</span>
+                </h2>
                 <p className="ln-p mt-4 ln-rv" style={{ ['--d' as string]: 2 }}>
-                  Frames feed a photogrammetry engine that produces a textured GLB. Today the demo runs offline on bundled models and you can upload a finished .glb. COLMAP and Polycam are not wired up yet.
+                  Extracted frames feed a photogrammetry engine that produces a textured GLB mesh. Today the demo runs offline on bundled models, and you can upload a finished .glb; COLMAP and Polycam run-through is not wired up yet.
                 </p>
-                <div className="ln-chips mt-6 ln-rv" style={{ ['--d' as string]: 3 }}>
-                  <span className="ln-chip ok">GLB upload works</span>
-                  <span className="ln-chip warn">Demo engine: offline</span>
-                  <span className="ln-chip warn">COLMAP / Polycam: planned</span>
+                <div className="ln-chips mt-5 ln-rv" style={{ ['--d' as string]: 3 }}>
+                  <span className="ln-chip">GLB upload works</span>
+                  <span className="ln-chip">Demo engine: offline</span>
+                  <span className="ln-chip amber">COLMAP / Polycam: planned</span>
                 </div>
               </div>
             </section>
 
-            {/* 3: analyse */}
+            {/* 3 — analyse */}
             <section className="ln-sec right" ref={setSec(3)}>
-              <div className="ln-card panel">
-                <div className="ln-num ln-rv" style={{ ['--d' as string]: 0 }}>03</div>
-                <h2 className="ln-display ln-h2 mt-5 ln-rv" style={{ ['--d' as string]: 1 }}>Measure and map</h2>
+              <div className="ln-card glass">
+                <div className="ln-eyebrow ln-rv" style={{ ['--d' as string]: 0 }}>
+                  <i /> 03 · Analyse
+                </div>
+                <h2 className="ln-display ln-h2 mt-4 ln-rv" style={{ ['--d' as string]: 1 }}>
+                  Measure, classify,<br />
+                  <span className="ln-grad">map it.</span>
+                </h2>
                 <p className="ln-p mt-4 ln-rv" style={{ ['--d' as string]: 2 }}>
-                  Click two points to measure distance or height, calibrate the scale and switch units. A Leaflet map shows the survey location. Labels on this page are an illustration, not live detections.
+                  Click two points to measure distance or height, calibrate the scale, and switch units. A Leaflet map shows the survey location. Scene labels on this page are an illustration, not live detections.
                 </p>
-                <div className="ln-chips mt-6 ln-rv" style={{ ['--d' as string]: 3 }}>
-                  <span className="ln-chip">Distance · Height</span>
-                  <span className="ln-chip">Calibration</span>
-                  <span className="ln-chip">GIS map</span>
+                <div className="ln-chips mt-5 ln-rv" style={{ ['--d' as string]: 3 }}>
+                  <span className="ln-chip">Distance · Height · Calibration</span>
+                  <span className="ln-chip amber">GIS map</span>
                 </div>
               </div>
             </section>
 
-            {/* 4: deliver */}
+            {/* 4 — deliver */}
             <section className="ln-sec" ref={setSec(4)}>
-              <div className="ln-card" style={{ maxWidth: 620 }}>
-                <div className="ln-num ln-rv" style={{ ['--d' as string]: 0 }}>04</div>
+              <div className="ln-card" style={{ maxWidth: 600 }}>
+                <div className="ln-eyebrow ln-rv" style={{ ['--d' as string]: 0 }}>
+                  <i /> 04 · Deliver
+                </div>
                 <h2 className="ln-display ln-h2 mt-5 ln-rv" style={{ ['--d' as string]: 1 }}>
-                  Explore the <span className="ln-accent">digital twin</span>
+                  Explore the <span className="ln-grad">digital twin.</span>
                 </h2>
                 <p className="ln-p mt-5 ln-rv" style={{ ['--d' as string]: 2 }}>
                   Open the interactive viewer, or start a new survey with your own footage.
                 </p>
-                <div className="ln-actions ln-rv flex flex-wrap items-center gap-3 mt-8" style={{ ['--d' as string]: 3 }}>
-                  <button className="btn btn-primary" onClick={handleLaunchDemo}>
-                    <Play className="w-4 h-4 fill-current" aria-hidden /> Open the demo
+                <div className="ln-rv flex flex-wrap gap-3 mt-8" style={{ ['--d' as string]: 3 }}>
+                  <button className="ln-btn primary" onClick={handleLaunchDemo}>
+                    <Play className="w-4 h-4 fill-current" /> Launch Interactive Demo
                   </button>
-                  <Link to="/projects/new" className="btn btn-ghost">
-                    Start a survey <ArrowRight className="w-4 h-4" aria-hidden />
+                  <Link to="/projects/new" className="ln-btn ghost">
+                    <PlusCircle className="w-4 h-4 text-sky-400" /> Start New Survey
                   </Link>
                 </div>
               </div>
             </section>
           </div>
 
-          <div className="ln-after">
-            {/* Viewer */}
-            <section className="ln-sect" aria-labelledby="viewer-h">
-              <div className="ln-wrap ln-split">
-                <div>
-                  <div className="ln-eyebrow"><i /> 3D viewer</div>
-                  <h2 id="viewer-h" className="ln-display ln-h2 mt-5">Inspect the model like engineering software</h2>
-                  <p className="ln-p mt-5">Open any GLB in the browser and check its real geometry. Every control below is implemented in the viewer today.</p>
-                  <ul className="ln-list">
-                    {[
-                      ['Length, width and height', 'Guide lines and labels from the model\u2019s bounding box.'],
-                      ['Two-point measurement', 'Pick any two points for distance and height.'],
-                      ['Calibration and units', 'Set a known length to scale the model, then switch units.'],
-                      ['Four view modes', 'Solid, wireframe, point cloud and orbit.']
-                    ].map(([t, d]) => (
-                      <li key={t}><Check className="w-5 h-5" aria-hidden /><span><b>{t}</b>{d}</span></li>
-                    ))}
-                  </ul>
-                  <button className="btn btn-primary mt-9" onClick={handleLaunchDemo}>
-                    <Play className="w-4 h-4 fill-current" aria-hidden /> Open the demo viewer
-                  </button>
-                </div>
-                <figure className="ln-frame">
-                  <div className="ln-frame-bar" aria-hidden><i /><i /><i /><span className="ml-2">AERO3D viewer</span></div>
-                  <img src="/img/viewer-demo.png" alt="The AERO3D viewer showing the demo building with length, width and height dimension lines" loading="lazy" width={1440} height={900} />
-                  <figcaption>Demo project in the viewer. Screenshot of the running app.</figcaption>
-                </figure>
+          {/* Features */}
+          <section className="ln-after py-24">
+            <div className="max-w-7xl mx-auto px-4 lg:px-8">
+              <div className="text-center max-w-2xl mx-auto mb-14 space-y-3">
+                <div className="ln-eyebrow justify-center"><i /> What is implemented</div>
+                <h2 className="ln-display ln-h2">What works today</h2>
+                <p className="text-slate-300 text-sm">Each capability is labelled as working, demo data, or partly built.</p>
               </div>
-            </section>
-
-            {/* Pipeline (light) */}
-            <section className="ln-sect ln-paper" aria-labelledby="pipe-h">
-              <div className="ln-wrap">
-                <div className="ln-sect-head">
-                  <div className="ln-eyebrow"><i /> Reconstruction pipeline</div>
-                  <h2 id="pipe-h" className="ln-display ln-h2 mt-5">From aerial footage to a measurable model</h2>
-                  <p className="ln-p">Five stages. Each is marked as working or simulated, so you can see what runs for real today.</p>
-                </div>
-                <ol className="ln-steps">
-                  {PIPELINE.map((st, i) => (
-                    <li key={st.t} className="ln-step">
-                      <span className="n" aria-hidden>{i + 1}</span>
-                      <h3 className="ln-display">{st.t}</h3>
-                      <p className="mt-2"><span className={`ln-tag-s ${st.st}`}>{st.label}</span></p>
-                      <p>{st.d}</p>
-                    </li>
-                  ))}
-                </ol>
-                <div className="ln-legend">
-                  <span><span className="ln-tag-s ok">Working</span> runs for real</span>
-                  <span><span className="ln-tag-s sim">Simulated in demo</span> bundled sample data</span>
-                  <span><span className="ln-tag-s plan">Planned</span> not built</span>
-                </div>
-              </div>
-            </section>
-
-            {/* Capabilities */}
-            <section className="ln-sect" aria-labelledby="cap-h">
-              <div className="ln-wrap">
-                <div className="ln-sect-head">
-                  <div className="ln-eyebrow"><i /> Platform</div>
-                  <h2 id="cap-h" className="ln-display ln-h2 mt-5">Projects, maps and reports in one place</h2>
-                </div>
-                <div className="ln-bento">
-                  <article className="ln-cell ln-b1">
-                    <div className="ic"><FolderKanban className="w-5 h-5" aria-hidden /></div>
-                    <h3 className="ln-display">Every survey is its own project</h3>
-                    <p>Each project keeps its own model, metadata, calibration and measurements. Switch between projects, delete the ones you no longer need, and your projects are still there after a reload.</p>
-                    <div className="ln-kv">
-                      <div><b>Isolated</b>per-project state</div>
-                      <div><b>Persistent</b>survives reloads</div>
-                      <div><b>Removable</b>delete with confirmation</div>
-                    </div>
-                  </article>
-                  <article className="ln-cell ln-b2">
-                    <div className="ic"><Ruler className="w-5 h-5" aria-hidden /></div>
-                    <h3 className="ln-display">Scale calibration</h3>
-                    <p>Anchor the model to a known real-world length, then read distances in your unit.</p>
-                    <span className="ln-status ok">Working</span>
-                  </article>
-                  <article className="ln-cell ln-b3">
-                    <div className="ic"><MapIcon className="w-5 h-5" aria-hidden /></div>
-                    <h3 className="ln-display">GIS location map</h3>
-                    <p>Dark, street and satellite layers show the survey location and boundary.</p>
-                    <span className="ln-status ok">Working</span>
-                  </article>
-                  <article className="ln-cell ln-b4">
-                    <div className="ic"><FileText className="w-5 h-5" aria-hidden /></div>
-                    <h3 className="ln-display">Inspection report</h3>
-                    <p>A printable report per project. Use your browser’s Print dialog to save it as PDF.</p>
-                    <span className="ln-status ok">Working</span>
-                  </article>
-                  <article className="ln-cell ln-b5">
-                    <div className="ic"><BrainCircuit className="w-5 h-5" aria-hidden /></div>
-                    <h3 className="ln-display">AI scene intelligence</h3>
-                    <p>Detections are sample data on the bundled demo project. No detector runs on uploaded projects yet.</p>
-                    <span className="ln-status warn">Demo data</span>
-                  </article>
-                </div>
-              </div>
-            </section>
-
-            {/* CTA */}
-            <section className="pb-24" aria-label="Get started">
-              <div className="ln-wrap">
-                <div className="ln-cta">
-                  <div>
-                    <h2 className="ln-display ln-h2">See the demo building in 3D</h2>
-                    <p className="ln-p mt-4">Open the viewer with a bundled project, or upload your own GLB.</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {[
+                  { I: Box, t: '3D viewer in the browser', st: 'Working', d: 'Render GLB models with Three.js and React Three Fiber, switch between textured, wireframe, solid and point-cloud views, with no plugin to install.' },
+                  { I: Ruler, t: 'Dimensions and measurement', st: 'Working', d: 'Length, width and height guide lines, two-point distance and height measurement, scale calibration and unit conversion.' },
+                  { I: Map, t: 'GIS location map', st: 'Working', d: 'A Leaflet map with dark, street and satellite layers shows the survey location and boundary.' },
+                  { I: FileText, t: 'Survey report', st: 'Working', d: 'A printable inspection report for each project; use your browser\'s Print dialog to save it as PDF.' },
+                  { I: BrainCircuit, t: 'AI scene intelligence', st: 'Demo data', d: 'Object detections are sample data for the bundled demo project only. No detector runs on uploaded projects yet.' },
+                  { I: Cpu, t: 'Reconstruction engines', st: 'Partly built', d: 'FFmpeg frame extraction and a provider layer exist. Running COLMAP or Polycam end to end is not implemented; upload a finished .glb for now.' }
+                ].map(({ I, t, d, st }) => (
+                  <div key={t} className="ln-feat">
+                    <div className="ic"><I className="w-5 h-5" /></div>
+                    <h3 className="ln-display font-bold text-lg text-slate-100">{t}</h3>
+                    <span className={`inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full border ${st === 'Working' ? 'text-emerald-300 border-emerald-500/40 bg-emerald-500/10' : 'text-amber-300 border-amber-500/40 bg-amber-500/10'}`}>{st}</span>
+                    <p className="text-slate-300 text-sm leading-relaxed mt-3">{d}</p>
                   </div>
-                  <div className="ln-actions flex flex-wrap gap-3">
-                    <button className="btn btn-primary" onClick={handleLaunchDemo}><Play className="w-4 h-4 fill-current" aria-hidden /> Open the demo</button>
-                    <Link to="/projects/new" className="btn btn-secondary">New survey</Link>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
-        </main>
-
-        <footer className="ln-footer">
-          <div className="ln-wrap">
-            <div className="ln-foot-grid">
-              <div>
-                <Link to="/" className="inline-flex items-center gap-3" aria-label="AERO3D home">
-                  <span className="w-9 h-9 rounded-[10px] bg-sky-500 text-aerospace-950 font-display font-bold text-sm grid place-items-center" aria-hidden>3D</span>
-                  <span className="font-display font-semibold text-xl text-slate-100">AERO3D</span>
-                </Link>
-                <p className="mt-4 max-w-sm leading-relaxed">Drone footage to measurable 3D models in the browser. Built for INNOTECH 2026.</p>
-              </div>
-              <nav aria-label="Product">
-                <h4>Product</h4>
-                <ul>
-                  <li><Link to="/dashboard">Dashboard</Link></li>
-                  <li><Link to="/projects">Projects</Link></li>
-                  <li><Link to="/projects/new">New survey</Link></li>
-                  <li><Link to="/viewer/demo-proj-001">Demo viewer</Link></li>
-                </ul>
-              </nav>
-              <nav aria-label="Learn">
-                <h4>Learn</h4>
-                <ul>
-                  <li><Link to="/about">Architecture</Link></li>
-                  <li><Link to="/presentation">Presentation</Link></li>
-                  <li><Link to="/settings">System health</Link></li>
-                </ul>
-              </nav>
-              <div>
-                <h4>Credits</h4>
-                <p className="leading-relaxed">
-                  Homepage 3D model: Drone Building Scans, Matthew Guertin, 2026.{' '}
-                  <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline">CC BY 4.0</a>. Optimized for web.
-                </p>
+                ))}
               </div>
             </div>
-            <div className="ln-foot-base">
-              <span>© 2026 AERO3D · INNOTECH project</span>
-              <span>Hero model is illustrative and carries no survey measurements.</span>
+          </section>
+        </main>
+
+        <footer className="border-t border-slate-800/80 bg-aerospace-950 py-8 text-center text-xs text-slate-400 font-mono">
+          <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <span className="text-slate-300 font-bold">Aero3D Intelligence</span> © 2026 — INNOTECH Project
+              <div className="mt-1 text-xs text-slate-400">
+                Homepage 3D model: Drone Building Scans — Matthew Guertin, 2026.{' '}
+                <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline hover:text-sky-300">CC BY 4.0</a>. Optimized for web.
+              </div>
+            </div>
+            <div className="flex items-center gap-4 text-slate-400">
+              <Link to="/presentation" className="hover:text-sky-300">Presentation Mode</Link>
+              <Link to="/about" className="hover:text-sky-300">Architecture</Link>
+              <Link to="/settings" className="hover:text-sky-300">System Health</Link>
             </div>
           </div>
         </footer>
@@ -453,17 +340,17 @@ export const LandingPage: React.FC = () => {
       {/* steps rail */}
       <nav className={`ln-rail ${inStory ? '' : 'off'}`} aria-label="Story steps">
         {STAGES.map((s, i) => (
-          <button key={s} className={stage === i ? 'on' : ''} onClick={() => goTo(i)} aria-label={`Go to ${s}`}>
+          <button key={s} className={stage === i ? 'on' : ''} onClick={() => goTo(i)}>
             <span>{s}</span>
             <i />
           </button>
         ))}
       </nav>
 
-      {/* readout */}
+      {/* telemetry HUD */}
       <div className={`ln-hud ${inStory ? '' : 'off'}`} aria-hidden>
         <div className="stage"><small>Stage</small><span className="v" ref={setHud('stage')}>Orbit</span></div>
-        <div><small>Camera height</small><span className="v" ref={setHud('alt')}>120 m</span></div>
+        <div><small>Altitude</small><span className="v" ref={setHud('alt')}>120 m</span></div>
         <div className="hide-sm"><small>Vertices</small><span className="v" ref={setHud('v')}>—</span></div>
         <div className="hide-sm"><small>Triangles</small><span className="v" ref={setHud('t')}>—</span></div>
         <div><small>Points</small><span className="v" ref={setHud('pts')}>—</span></div>
