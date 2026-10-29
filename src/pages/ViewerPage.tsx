@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { ThreeCanvas } from '../components/viewer/ThreeCanvas';
 import { FloatingToolbar, ActiveTool, RenderMode, CameraPreset } from '../components/viewer/FloatingToolbar';
+import { EnvironmentId, EnvironmentStatus, ENVIRONMENT_LABEL, MOUNTAIN_URL } from '../components/viewer/EnvironmentLayer';
 import { ModelInfoPanel } from '../components/viewer/ModelInfoPanel';
 import { ModelMetrics } from '../components/viewer/BuildingModel';
 import { useProjects } from '../store/ProjectContext';
@@ -55,6 +56,21 @@ export const ViewerPage: React.FC = () => {
   const [showBoundingBox, setShowBoundingBox] = useState<boolean>(false);
   const [showLabels, setShowLabels] = useState<boolean>(true);
   const [unit, setUnit] = useState<LengthUnit>('m');
+  const [environment, setEnvironment] = useState<EnvironmentId>('default');
+  const [environmentStatus, setEnvironmentStatus] = useState<EnvironmentStatus>('idle');
+  const [environmentError, setEnvironmentError] = useState<string | null>(null);
+  const handleEnvironmentStatus = React.useCallback((st: EnvironmentStatus) => {
+    setEnvironmentStatus(st);
+    if (st === 'error') {
+      // Return to the default environment; the project model is untouched
+      setEnvironment('default');
+      setEnvironmentError(`The mountain model could not be loaded from ${MOUNTAIN_URL}. Check that the file is a valid GLB.`);
+    }
+  }, []);
+  const chooseEnvironment = (e: EnvironmentId) => {
+    setEnvironmentError(null);
+    setEnvironment(e);
+  };
   const [cameraPreset, setCameraPreset] = useState<CameraPreset>('default');
   const [showInfoPanel, setShowInfoPanel] = useState<boolean>(() => typeof window === 'undefined' || window.innerWidth >= 768);
   const [showCalibrationModal, setShowCalibrationModal] = useState<boolean>(false);
@@ -337,6 +353,9 @@ export const ViewerPage: React.FC = () => {
           setShowLabels={setShowLabels}
           unit={unit}
           setUnit={setUnit}
+          environment={environment}
+          setEnvironment={chooseEnvironment}
+          environmentStatus={environmentStatus}
         />
 
           <ThreeCanvas
@@ -359,7 +378,20 @@ export const ViewerPage: React.FC = () => {
             showLabels={showLabels}
             unit={unit}
             onMetricsUpdate={(m) => setLoadedMetricsState({ projectId: currentProj.id, metrics: m })}
+            environment={environment}
+            onEnvironmentStatus={handleEnvironmentStatus}
           />
+
+          {/* Current environment label */}
+          <div className="absolute bottom-3 left-3 z-20 px-2.5 py-1 rounded-md bg-aerospace-900/80 border border-slate-700 text-xs text-slate-300 pointer-events-none" aria-live="polite">
+            {ENVIRONMENT_LABEL[environment]}
+          </div>
+          {environmentError && (
+            <div role="alert" className="absolute bottom-12 left-3 right-3 sm:right-auto sm:max-w-md z-20 flex items-start gap-3 px-3 py-2 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-200 text-xs">
+              <span className="flex-1">{environmentError}</span>
+              <button type="button" onClick={() => setEnvironmentError(null)} className="text-amber-300 hover:text-white">Dismiss</button>
+            </div>
+          )}
         </div>
 
         {/* Right Info Drawer Panel */}

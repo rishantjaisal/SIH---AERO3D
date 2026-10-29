@@ -15,8 +15,11 @@ import {
   Sparkles,
   SlidersHorizontal,
   Ruler as RulerIcon,
-  Type
+  Type,
+  Grid3x3,
+  Mountain
 } from 'lucide-react';
+import { EnvironmentId, EnvironmentStatus } from './EnvironmentLayer';
 import { LENGTH_UNITS, LengthUnit } from '../../utils/units';
 
 export type ActiveTool = 'orbit' | 'measure-distance' | 'measure-height' | 'add-marker';
@@ -44,6 +47,9 @@ interface FloatingToolbarProps {
   setShowLabels: (v: boolean) => void;
   unit: LengthUnit;
   setUnit: (u: LengthUnit) => void;
+  environment: EnvironmentId;
+  setEnvironment: (e: EnvironmentId) => void;
+  environmentStatus: EnvironmentStatus;
 }
 
 export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
@@ -66,7 +72,10 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
   showLabels,
   setShowLabels,
   unit,
-  setUnit
+  setUnit,
+  environment,
+  setEnvironment,
+  environmentStatus
 }) => {
   const [expanded, setExpanded] = useState(true); // collapsible on small screens
   const toggleCls = (on: boolean) =>
@@ -246,6 +255,34 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
         </button>
       </div>
 
+    </div>
+
+    {/* Environment switcher: changes only the scenery behind the project model */}
+    <div className="pointer-events-auto flex items-center gap-2 p-1 rounded-xl glass-panel border border-sky-500/30 max-w-full" role="group" aria-label="Viewer environment">
+      <span className="hidden sm:block pl-2 text-xs text-slate-400">Environment</span>
+      <div className="flex items-center gap-1 bg-aerospace-950/80 p-1 rounded-lg border border-slate-800">
+        {([
+          { id: 'default' as const, label: 'Default', Icon: Grid3x3, tip: 'Default viewer environment (grid)' },
+          { id: 'mountain' as const, label: 'Mountain Terrain', Icon: Mountain, tip: 'Mountain terrain environment' }
+        ]).map(({ id, label, Icon, tip }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setEnvironment(id)}
+            aria-pressed={environment === id}
+            title={tip}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 ${
+              environment === id ? 'bg-sky-500 text-aerospace-950 shadow' : 'text-slate-300 hover:bg-slate-800'
+            }`}
+          >
+            <Icon className="w-3.5 h-3.5" aria-hidden />
+            <span>{label}</span>
+            {id === 'mountain' && environment === 'mountain' && environmentStatus === 'loading' && (
+              <span className="w-3 h-3 rounded-full border-2 border-aerospace-950/40 border-t-aerospace-950 animate-spin" role="status" aria-label="Loading mountain" />
+            )}
+          </button>
+        ))}
+      </div>
     </div>
 
     {/* Model annotation controls (second row so the main toolbar keeps its layout) */}
