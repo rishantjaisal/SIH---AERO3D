@@ -3,13 +3,15 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, ExternalLink, FileQuestion, MousePointer2, Ruler, Hexagon, RotateCcw, CheckCircle2 } from 'lucide-react';
 import { Sidebar } from '../components/layout/Sidebar';
 import { Topbar } from '../components/layout/Topbar';
-import { SafeImage } from '../components/DemoProjectCard';
+import { LidarDatasetCard } from '../components/lidar/LidarDatasetCard';
+import { ElevationProfile } from '../components/lidar/ElevationProfile';
+import { elevationProfile } from '../lidar/profile';
 import { LidarScene, ColorMode, LidarTool, CLASS_NAMES, classColor } from '../components/lidar/LidarScene';
 import { LIDAR_DATASETS, LidarDataset, getLidarDataset } from '../lidar/datasets';
 import { LasCloud, parseLas } from '../lidar/las';
 import { buildDsm, computeChange, pointChange, ChangeResult } from '../lidar/dem';
 import { DemGrid } from '../lidar/DemGrid';
-import { Point3D, computeAabb, computeDistance, computePolygonArea, computeVolume } from '../lidar/measure';
+import { Point3D, computeAabb, computeDistance, computeLineSlope, computePolygonArea, computeVolume } from '../lidar/measure';
 
 const CELL = 0.5;
 const fmt = (v: number, d = 3) => (Number.isFinite(v) ? v.toFixed(d) : '—');
@@ -28,31 +30,7 @@ const LidarIndex: React.FC = () => {
       </div>
 
       <div className="grid sm:grid-cols-2 gap-5">
-        {LIDAR_DATASETS.map(d => (
-          <article key={d.id} className="group rounded-xl glass-panel border border-slate-800 overflow-hidden flex flex-col transition-colors hover:border-sky-500/50">
-            <div className="relative aspect-[16/9] bg-aerospace-900 overflow-hidden">
-              <SafeImage src={d.previewUrl} alt={`${d.name} preview`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" label="Preview not available" />
-              <span className="absolute top-3 left-3 px-2 py-0.5 rounded bg-aerospace-950/85 border border-slate-700 text-[11px] font-semibold text-sky-300">Demo Project</span>
-            </div>
-            <div className="p-5 flex flex-col gap-3 flex-1">
-              <div>
-                <p className="text-[11px] uppercase tracking-wider text-slate-400">{d.category}</p>
-                <h3 className="text-base font-bold mt-0.5">{d.name}</h3>
-              </div>
-              <p className="text-sm text-slate-300 leading-relaxed">{d.summary}</p>
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                <dt className="text-slate-400">Input</dt><dd className="text-right">{d.inputFormat}</dd>
-                <dt className="text-slate-400">Output</dt><dd className="text-right">{d.outputFormat}</dd>
-              </dl>
-              <div className="flex flex-wrap gap-1.5">
-                {d.labels.filter(l => l !== 'Demo Project').map(l => <span key={l} className="px-2 py-0.5 rounded-full border border-slate-700 text-[11px] text-slate-300">{l}</span>)}
-              </div>
-              <button type="button" onClick={() => navigate(`/lidar/${d.id}`)} className="mt-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-aerospace-950 font-bold text-xs">
-                Open Project <ArrowRight className="w-4 h-4" aria-hidden />
-              </button>
-            </div>
-          </article>
-        ))}
+        {LIDAR_DATASETS.map(d => <LidarDatasetCard key={d.id} dataset={d} onOpen={() => navigate(`/lidar/${d.id}`)} />)}
       </div>
 
       <section className="rounded-xl glass-panel border border-slate-800 p-5 text-sm text-slate-300 space-y-2">
@@ -148,6 +126,9 @@ const LidarViewer: React.FC<{ ds: LidarDataset }> = ({ ds }) => {
     const volume = Number.isFinite(bz) ? computeVolume(picks, dem, { referenceType: 'PLANE_ELEVATION', baseElevation: bz }) : null;
     return { area, volume };
   }, [tool, closed, picks, dem, baseZ]);
+
+  const slope = distance ? computeLineSlope(picks[0], picks[1]) : null;
+  const profile = useMemo(() => (tool === 'distance' && picks.length === 2 && dem ? elevationProfile(picks[0], picks[1], dem) : null), [tool, picks, dem]);
 
   const aabb = cloud ? computeAabb([cloud.min as Point3D, cloud.max as Point3D]) : null;
 
@@ -287,6 +268,8 @@ const LidarViewer: React.FC<{ ds: LidarDataset }> = ({ ds }) => {
                 <Row k="3D distance" v={`${fmt(distance.distance3D)} m`} />
                 <Row k="Horizontal" v={`${fmt(distance.horizontalDistance)} m`} />
                 <Row k="Height difference" v={`${fmt(distance.signedDz)} m`} />
+                {slope && <><Row k="Inclination" v={`${fmt(slope.lineAngleDeg, 2)}°`} /><Row k="Grade" v={Number.isFinite(slope.gradePercent) ? `${fmt(slope.gradePercent, 1)} %` : 'vertical'} /></>}
+                {profile && <div className="mt-2"><ElevationProfile samples={profile} /></div>}
               </div>
             ) : <p className="text-xs text-slate-400">Pick two points.</p>)}
             {tool === 'polygon' && (
