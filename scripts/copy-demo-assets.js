@@ -5,6 +5,8 @@ const publicDemo = path.join(process.cwd(), 'public', 'demo');
 const distDemo = path.join(process.cwd(), 'dist', 'demo');
 const publicModels = path.join(process.cwd(), 'public', 'models');
 const distModels = path.join(process.cwd(), 'dist', 'models');
+const publicLidar = path.join(process.cwd(), 'public', 'lidar');
+const distLidar = path.join(process.cwd(), 'dist', 'lidar');
 const publicRedirects = path.join(process.cwd(), 'public', '_redirects');
 const distRedirects = path.join(process.cwd(), 'dist', '_redirects');
 const publicHeaders = path.join(process.cwd(), 'public', '_headers');
@@ -21,6 +23,11 @@ if (fs.existsSync(publicDemo)) {
 if (fs.existsSync(publicModels)) {
   fs.cpSync(publicModels, distModels, { recursive: true });
   console.log('✅ Copied homepage models to dist/models for Netlify production build.');
+}
+
+if (fs.existsSync(publicLidar)) {
+  fs.cpSync(publicLidar, distLidar, { recursive: true });
+  console.log('✅ Copied LiDAR demo datasets to dist/lidar for Netlify production build.');
 }
 
 if (fs.existsSync(publicRedirects)) {

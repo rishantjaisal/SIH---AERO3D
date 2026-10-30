@@ -1,0 +1,56 @@
+{
+  "dataset_name": "Synthetic Benchmark Terrain (local-coordinate negative case)",
+  "crs": null,
+  "units": "metres",
+  "bounds": {
+    "min_x": 0.0,
+    "max_x": 100.0,
+    "min_y": 0.0,
+    "max_y": 100.0,
+    "min_z": 10.0,
+    "max_z": 30.0
+  },
+  "total_points": 41682,
+  "features": {
+    "flat_plane": {
+      "elevation_m": 10.0,
+      "extent_x": [
+        0.0,
+        100.0
+      ],
+      "extent_y": [
+        0.0,
+        100.0
+      ],
+      "expected_slope_deg": 0.0
+    },
+    "gaussian_hill": {
+      "center_x": 70.0,
+      "center_y": 70.0,
+      "base_elevation_m": 10.0,
+      "peak_elevation_m": 30.0,
+      "amplitude_m": 20.0,
+      "sigma_m": 10.0,
+      "formula": "Z = 10.0 + 20.0 * exp(-((x-70)^2 + (y-70)^2) / 200)"
+    },
+    "box_structure": {
+      "bounds_x": [
+        15.0,
+        25.0
+      ],
+      "bounds_y": [
+        15.0,
+        25.0
+      ],
+      "bounds_z": [
+        10.0,
+        15.0
+      ],
+      "width_x_m": 10.0,
+      "length_y_m": 10.0,
+      "height_z_m": 5.0,
+      "expected_roof_area_m2": 100.0,
+      "expected_volume_m3": 500.0
+    }
+  }
+}
