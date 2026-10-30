@@ -16,6 +16,8 @@ import { Sidebar } from '../components/layout/Sidebar';
 import { Topbar } from '../components/layout/Topbar';
 import { useProjects } from '../store/ProjectContext';
 import { DeleteProjectButton } from '../components/DeleteProjectButton';
+import { DemoProjectCard } from '../components/DemoProjectCard';
+import { getDemoInfo } from '../data/demoProjects';
 
 export const ProjectsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -67,6 +69,25 @@ export const ProjectsPage: React.FC = () => {
             />
           </div>
 
+          {/* Showcase projects built from published external datasets */}
+          {(() => {
+            const showcase = (projects || []).filter(p => p && getDemoInfo(p.id));
+            if (showcase.length === 0) return null;
+            return (
+              <section aria-labelledby="showcase-heading" className="space-y-3">
+                <div>
+                  <h3 id="showcase-heading" className="text-sm font-bold text-slate-100">Showcase projects</h3>
+                  <p className="text-xs text-slate-400">Published external datasets with preprocessed outputs, opened in the AERO3D viewer.</p>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-5">
+                  {showcase.map(p => (
+                    <DemoProjectCard key={p.id} project={p} info={getDemoInfo(p.id)!} onOpen={() => { setActiveProject(p); navigate(`/projects/${p.id}`); }} />
+                  ))}
+                </div>
+              </section>
+            );
+          })()}
+
           {/* Projects Table */}
           <div className="rounded-xl glass-panel border border-slate-800 overflow-hidden">
             <div className="overflow-x-auto">
@@ -117,7 +138,8 @@ export const ProjectsPage: React.FC = () => {
                           const tone = st === 'SUCCEEDED' ? 'text-emerald-300 border-emerald-500/40 bg-emerald-500/10'
                             : st === 'FAILED' ? 'text-rose-300 border-rose-500/40 bg-rose-500/10'
                             : 'text-amber-300 border-amber-500/40 bg-amber-500/10';
-                          const label = st === 'SUCCEEDED' ? 'Model ready' : st === 'FAILED' ? 'Failed' : st === 'PROCESSING' ? 'Processing' : st === 'QUEUED' ? 'Queued' : 'Unknown';
+                          const pending = getDemoInfo(proj.id)?.outputShipped === false;
+                          const label = pending ? 'Output pending' : st === 'SUCCEEDED' ? 'Model ready' : st === 'FAILED' ? 'Failed' : st === 'PROCESSING' ? 'Processing' : st === 'QUEUED' ? 'Queued' : 'Unknown';
                           return <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${tone}`}>{label}</span>;
                         })()}
                       </td>
