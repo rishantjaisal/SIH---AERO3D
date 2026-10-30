@@ -353,6 +353,7 @@ export const LandingPage: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-4 text-slate-400">
+              <Link to="/lidar" className="hover:text-sky-300">LiDAR Demo</Link>
               <Link to="/presentation" className="hover:text-sky-300">Presentation Mode</Link>
               <Link to="/about" className="hover:text-sky-300">Architecture</Link>
               <Link to="/settings" className="hover:text-sky-300">System Health</Link>
