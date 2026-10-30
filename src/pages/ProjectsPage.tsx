@@ -88,6 +88,15 @@ export const ProjectsPage: React.FC = () => {
             );
           })()}
 
+          {/* LiDAR point-cloud demos (synthetic benchmarks) */}
+          <section aria-labelledby="lidar-heading" className="rounded-xl glass-panel border border-slate-800 p-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 id="lidar-heading" className="text-sm font-bold text-slate-100">LiDAR demos</h3>
+              <p className="text-xs text-slate-400">Point-cloud viewer with distance, area, volume and change-detection tools. Synthetic benchmark datasets with known answers.</p>
+            </div>
+            <Link to="/lidar" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 font-semibold text-xs">Open LiDAR demos</Link>
+          </section>
+
           {/* Projects Table */}
           <div className="rounded-xl glass-panel border border-slate-800 overflow-hidden">
             <div className="overflow-x-auto">
