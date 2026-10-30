@@ -14,6 +14,7 @@ import {
   Info,
   ChevronRight,
   Activity,
+  ScanLine,
   X
 } from 'lucide-react';
 import { useProjects } from '../../store/ProjectContext';
@@ -37,6 +38,7 @@ export const Sidebar: React.FC = () => {
   const navItems = [
     { label: 'Overview', path: '/dashboard', base: '/dashboard', icon: LayoutDashboard },
     { label: 'Projects', path: '/projects', base: '/projects', icon: FolderKanban },
+    { label: 'LiDAR Demo', path: '/lidar', base: '/lidar', icon: ScanLine },
     { label: '3D Viewer', path: `/viewer/${projId}`, base: '/viewer', icon: Box },
     { label: 'AI Intelligence', path: `/analysis/${projId}`, base: '/analysis', icon: BrainCircuit },
     { label: 'GIS Mapping', path: `/map/${projId}`, base: '/map', icon: Map },

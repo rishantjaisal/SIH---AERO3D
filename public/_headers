@@ -7,3 +7,7 @@
   Content-Type: model/gltf-binary
   Access-Control-Allow-Origin: *
   Cross-Origin-Resource-Policy: cross-origin
+
+/lidar/*.las
+  Content-Type: application/octet-stream
+  Access-Control-Allow-Origin: *

@@ -7,6 +7,7 @@ const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ defaul
 const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage').then(m => ({ default: m.ProjectsPage })));
 const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage').then(m => ({ default: m.ProjectDetailPage })));
+const LidarPage = lazy(() => import('./pages/LidarPage').then(m => ({ default: m.LidarPage })));
 const NewSurvey = lazy(() => import('./pages/NewSurvey').then(m => ({ default: m.NewSurvey })));
 const ProcessingPage = lazy(() => import('./pages/ProcessingPage').then(m => ({ default: m.ProcessingPage })));
 const ViewerPage = lazy(() => import('./pages/ViewerPage').then(m => ({ default: m.ViewerPage })));
@@ -40,6 +41,8 @@ export const App: React.FC = () => {
               <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/projects/new" element={<NewSurvey />} />
               <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+              <Route path="/lidar" element={<LidarPage />} />
+              <Route path="/lidar/:datasetId" element={<LidarPage />} />
               
               {/* Parameterized and Default Routes */}
               <Route path="/processing" element={<ProcessingPage />} />
