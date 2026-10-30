@@ -94,6 +94,54 @@ const DEFAULT_PROJECTS: Project[] = [
       operator: 'Chief Drone Surveyor',
       accuracyNote: 'DEMO SAMPLE — Real photogrammetry model (public/demo/ruined_city_free_5.glb).'
     }
+  },
+  {
+    id: 'demo-proj-004',
+    name: 'Industrial Building Digital Twin',
+    status: 'SUCCEEDED',
+    provider: 'demo',
+    created_at: '2026-08-22T18:17:15.000Z',
+    model_url: '/models/projects/industrial-building/model.glb',
+    thumbnail_url: '/models/projects/industrial-building/preview.jpg',
+    isDemo: true,
+    source_type: 'demo',
+    reconstructionEngine: 'external',
+    metadata: {
+      locationName: '',
+      gps: { latitude: 45.0518123, longitude: -93.3909494 },
+      gsd: '',
+      surveyDate: '2026-08-22',
+      droneModel: '',
+      cameraModel: '',
+      flightAltitude: '',
+      weather: '',
+      operator: 'Matthew Guertin (dataset author)',
+      accuracyNote: 'EXTERNAL SAMPLE DATASET — preprocessed output from Drone Building Scans (CC BY 4.0). No accuracy figures claimed.'
+    }
+  },
+  {
+    id: 'demo-proj-005',
+    name: 'Archaeological Heritage Reconstruction',
+    status: 'SUCCEEDED',
+    provider: 'demo',
+    created_at: '2026-08-21T10:00:00.000Z',
+    model_url: '/models/projects/archaeological-heritage/model.glb',
+    thumbnail_url: SVG_THUMBNAILS.city,
+    isDemo: true,
+    source_type: 'demo',
+    reconstructionEngine: 'external',
+    metadata: {
+      locationName: '',
+      gps: null,
+      gsd: '',
+      surveyDate: '',
+      droneModel: '',
+      cameraModel: '',
+      flightAltitude: '',
+      weather: '',
+      operator: '',
+      accuracyNote: 'EXTERNAL SAMPLE DATASET — Mendeley Data ydpn8xnx24 (CC BY 4.0). Point cloud; no accuracy figures claimed.'
+    }
   }
 ];
 
@@ -117,7 +165,11 @@ function loadSavedProjects(): Project[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && (parsed.length > 0 || loadDeletedIds().length > 0)) {
-        return parsed;
+        // Newly shipped built-in demos appear for returning visitors too, unless they deleted them
+        const have = new Set(parsed.map((p: Project) => p.id));
+        const deleted = new Set(loadDeletedIds());
+        const added = DEFAULT_PROJECTS.filter(d => !have.has(d.id) && !deleted.has(d.id) && /^demo-proj-00[45]$/.test(d.id));
+        return [...parsed, ...added];
       }
     }
   } catch (err) {
